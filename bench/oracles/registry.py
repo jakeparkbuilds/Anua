@@ -5,7 +5,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Any, Callable
 from . import dns as _dns, tls as _tls, http as _http
-from .dns import OracleUnavailable  # re-export
+from .errors import OracleUnavailable  # re-export
 
 ORACLES: dict[str, Callable[[str], Any]] = {
     "dns.a_record":       _dns.a_record,
