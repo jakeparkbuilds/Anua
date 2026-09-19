@@ -5,7 +5,7 @@ ans:
   # HUMAN: confirm the production Search API base. agent-trust-discovery's README
   # says its read API is "wire-compatible with the ANS production Search API"
   # at GET /v1/ans/registered-agents. The host below is a guess — verify.
-  search_base: "https://registry.ans.godaddy.com"
+  search_base: "https://api.godaddy.com"
   # Confirmed from webmesh.ai transparency-log links:
   transparency_base: "https://transparency.ans.godaddy.com"
   rate_limit_per_minute: 100
