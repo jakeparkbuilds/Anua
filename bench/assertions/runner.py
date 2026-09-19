@@ -51,6 +51,10 @@ class Runner:
     def _oracle(self, a: Assertion) -> Assertion:
         domain = a.input["domain"]
         a.expected = a.expected_override if a.expected_override is not None else compute(a.oracle, domain)
+        if a.expected is None:
+            # Belt and braces: oracles raise OracleUnavailable rather than returning None,
+            # but if one ever does, never grade the agent against an unknown truth.
+            raise OracleUnavailable(f"oracle {a.oracle} returned no value for {domain}")
         raw, ms = self._ask(a)
         a.raw_response, a.latency_ms = raw, ms
         a.actual = adapter.extract(raw, a.claim)
