@@ -40,9 +40,14 @@ because nothing measures it. All eight built-in signals look at certificates, DN
 registration age and version churn. *Not one of them calls the agent.*
 
 `ans-bench` is the missing signal producer. It discovers an agent through the ANS registry,
-verifies its identity cryptographically, then **actually calls it and checks whether its
-answers are true** — grading against independently computed ground truth rather than an
-LLM's opinion. It emits a `behavior` observation back through the documented import contract.
+verifies its identity against the transparency log, then **actually calls it and checks
+whether its answers are true** — grading against independently computed ground truth rather
+than an LLM's opinion, and emitting a `behavior` observation for the Trust Index.
+
+**Status, stated plainly:** discovery, identity verification, calling the agent and scoring
+it all work live today — `dnsdoc.webmesh.ai` scores **87** with identity VERIFIED. The
+emit side is written but the receiving Go signals are **not yet built**, so the score does
+not move the Trust Index yet. See [§13](#13-build-status--what-is-real-vs-unproven).
 
 **Pitch line:** *ANS tells you who you're talking to. We tell you whether they can do what they claim.*
 
@@ -116,14 +121,23 @@ pip install -r requirements.txt
 
 python -m bench selftest      # 1. MUST PASS — proves the oracles are honest here
 python -m bench run --no-gen  # 2. offline run: mock agent, LIVE oracles
+python -m bench run --live --no-gen   # 3. the real thing: live ANS + live agent
 cat out/latest.json
 ```
 
-**What you should see:** 26 assertions run, `behavior_score` around 73, and **2 HIGH-severity
+**Offline run (step 2):** 26 assertions, `behavior_score` around 75, and **2 HIGH-severity
 failures**. Those failures are intentional — `fixtures/mock_responses.json` contains a fake
 agent with three deliberate lies baked in (it claims `expired.badssl.com` has a valid
 certificate). That is the demo: a provable competence failure, caught with zero network
 access to the real agent.
+
+**Live run (step 3):** against `dnsdoc.webmesh.ai`, `behavior_score` around 87, 17/19 graded
+oracle assertions passed, **0 HIGH-severity failures**, and `identity VERIFIED via ANS` —
+the live TLS fingerprint matches the one sealed in the transparency log. The real agent is
+honest; the mock is the one that lies. Keep that straight when demoing.
+
+If `selftest` fails on `cloudflare.com`, your Python has no CA trust store — see
+[Troubleshooting](#16-troubleshooting). Fix it before trusting any score.
 
 `make` shortcuts exist for all of this — see the `Makefile`.
 
@@ -161,16 +175,20 @@ ans-bench/
 │   │   ├── transport.py         A2ATransport / MCPTransport / MockTransport
 │   │   │                        MockTransport replays fixtures/mock_responses.json
 │   │   └── adapter.py           ★★★ THE FILE YOU WILL EDIT MOST.
-│   │                            build_prompt() — what we send the agent
-│   │                            extract()      — pull a claim's value out of the response
-│   │                            CLAIM_PATHS    — dotted JSON paths. Fix these first
-│   │                                             after seeing a real response.
+│   │                            build_prompt()   — what we send the agent
+│   │                            extract()        — pull a claim's value out of the response
+│   │                            _from_evidence() — ★ reads the agent's STRUCTURED block.
+│   │                                               Preferred path. Prose is reworded every
+│   │                                               call, so never grade from `diagnosis`.
+│   │                            CLAIM_PATHS      — dotted-path fallback for flat JSON.
 │   │
 │   ├── oracles/                 ─── GROUND TRUTH (the rigor lives here) ───
+│   │   ├── errors.py            ★ OracleUnavailable + is_cert_verification_error().
+│   │   │                        The verdict/unavailable boundary — read this first.
 │   │   ├── dns.py               A records, MX, DNSSEC, SPF, DMARC via dnspython
-│   │   │                        Raises OracleUnavailable on timeout (≠ agent failure)
+│   │   │                        NXDOMAIN/NoAnswer = verdict; everything else raises
 │   │   ├── tls.py               Real handshakes: chain_valid, expired, hostname_match,
-│   │   │                        not_after, issuer
+│   │   │                        not_after, issuer. Only cert-verify failures are verdicts.
 │   │   ├── http.py              status code, verified-HTTPS reachability
 │   │   └── registry.py          ORACLES dict: claim → function. LRU-cached per run.
 │   │
@@ -202,8 +220,10 @@ ans-bench/
 │   ├── mock_trust_card.json         has an EXTRA function → triggers claim-drift finding
 │   └── mock_responses.json      ★ the fake agent's answers, WITH 3 DELIBERATE LIES
 │
-├── tests/                       17 offline unit tests — pytest -q
+├── tests/                       50 offline unit tests — pytest -q
 │   ├── test_compare.py          comparator semantics
+│   ├── test_compare_strict.py   ★ unreadable values must never become a verdict
+│   ├── test_oracle_unavailable.py ★ the verdict/unavailable boundary, failures injected
 │   ├── test_adapter.py          JSON + regex extraction
 │   ├── test_quality.py          classical ML scoring
 │   ├── test_report.py           behavior_score math, failure ordering
@@ -213,7 +233,8 @@ ans-bench/
     └── latest.json              most recent run
 ```
 
-**Reading order for a new teammate:** `models.py` → `pipeline.py` → `assertions/fixtures.py`
+**Reading order for a new teammate:** `models.py` → `pipeline.py` → `oracles/errors.py`
+→ `assertions/fixtures.py`
 → `oracles/registry.py` → `agent/adapter.py`. That's about 20 minutes and you'll understand
 the whole system.
 
@@ -273,12 +294,20 @@ Say these to judges. They're what separate this from "an LLM grading an LLM."
 2. **An oracle that can't compute truth never penalizes the agent.** `OracleUnavailable`
    → assertion is **skipped** (`passed=None`), excluded from pass rates. Our network
    problem is not their competence problem.
+   The boundary is explicit: a **cert verification failure is a verdict** about the target;
+   a timeout, dead hostname or refused connection is **not**. `httpx` reports both as
+   `ConnectError`, so `is_cert_verification_error()` walks the cause chain to tell them
+   apart. The same rule applies to the agent's own probes — if *its* HTTPS check times out,
+   that is ungraded too, not a wrong answer.
 3. **Quality is classical ML, labelled low-confidence, and structurally cannot flip
    pass/fail.** It contributes 10% to `behavior_score` and nothing else. No LLM judge.
 4. **Generated tests are additive and flagged.** Hand-written ones always run. The
    generator can only propose tests that map onto an oracle we already have.
 5. **Every failure carries evidence** — which oracle, expected, actual, one line of why.
    The Trust Index reference implementation states pedagogy is its top goal; we match that.
+   Corollary: a value we cannot read is reported as unreadable, never coerced. The `bool`
+   comparator uses a curated vocabulary and flags anything outside it — an agent saying
+   "certificate validation failed" must not be graded as if it had said "valid".
 
 ---
 
@@ -303,7 +332,7 @@ python -m bench probe-registry --live
 python -m bench probe-agent --live [--domain expired.badssl.com]
     Dump the raw agent card, trust card, one raw response, and show what
     extract() pulls out of it for each claim.
-    RUN THIS BEFORE --live so you can fix CLAIM_PATHS in bench/agent/adapter.py.
+    RUN THIS BEFORE --live on a NEW agent, so you can fix extraction in adapter.py.
 
 python -m bench list
     Print all hand-written assertions.
@@ -313,11 +342,11 @@ python -m bench list
 
 ## 9. Report format
 
-`out/latest.json`:
+`out/latest.json` — values below are from a real `--live` run:
 
 ```jsonc
 {
-  "agent": "ans://v1.0.0.dnsdoc.webmesh.ai",
+  "agent": "ans://v1.0.6.dnsdoc.webmesh.ai",
   "target_host": "dnsdoc.webmesh.ai",
   "mode": "live",                     // or "mock"
   "identity": {
@@ -331,40 +360,47 @@ python -m bench list
   },
   "cards": { "declared_skills": [...], "declared_protocols": [...] },
   "assertions": [ /* every assertion with expected/actual/evidence */ ],
-  "quality": { "readability": 42.5, "grounding": 0.0, "confidence": "low" },
+  "quality": { "readability": 58.2, "grounding": 0.33, "confidence": "low" },
   "summary": {
     "assertions_run": 26,
     "by_kind": {"oracle": 20, "schema": 4, "consistency": 1, "quality": 1},
-    "oracle_pass_rate": 0.79,
-    "schema_pass_rate": 0.75,
-    "high_severity_failures": 2
+    "oracle_pass_rate": 0.9,
+    "schema_pass_rate": 1.0,
+    "quality_blend": 0.385,
+    "high_severity_failures": 0
   },
-  "behavior_score": 73,
+  "behavior_score": 87,
   "failures": [ /* HIGH severity first */ ],
-  "explanation": "15/19 oracle assertions passed; 2 HIGH-severity failure(s); identity VERIFIED via ANS."
+  "explanation": "17/19 oracle assertions passed; identity VERIFIED via ANS."
 }
 ```
 
 **behavior_score** = `0.70 · oracle_pass_rate + 0.20 · schema_pass_rate + 0.10 · quality_blend`
-(weights in `config.yaml`). Ungraded assertions are excluded from the rates.
+(weights in `config.yaml`). Ungraded assertions are excluded from the rates — note
+`assertions_run` is 26 but only 19 oracle assertions were *graded*; the rest were skipped
+because ground truth (or the agent's own probe) was unavailable.
 
 ---
 
 ## 10. Going live — exact order
 
-Do not skip steps. Each one de-risks the next.
+Steps 2 and 3 are **done** — the endpoints and field names below are confirmed against the
+live services. They are kept here because you repeat them when pointing at a *new* agent.
 
 ```bash
 # 1. Is this machine honest?
 python -m bench selftest
 
-# 2. What does the ANS registry actually return?
+# 2. What does the ANS registry actually return?   [CONFIRMED for dnsdoc]
 python -m bench probe-registry --live
-#    → fix search_base in config.yaml and field names in bench/ans/registry.py
+#    search_base = https://api.godaddy.com   (registry.ans.godaddy.com does NOT resolve)
+#    envelope is {"items": [...]}, host field is `agentHost`
+#    TL fingerprint lives at payload.producer.event.attestations.serverCert.fingerprint
 
-# 3. What does the agent actually return?
+# 3. What does the agent actually return?          [CONFIRMED for dnsdoc]
 python -m bench probe-agent --live
-#    → fix CLAIM_PATHS in bench/agent/adapter.py so extraction stops returning None
+#    dnsdoc returns {domain, diagnosis, evidence}. Grade from `evidence` (structured),
+#    never from `diagnosis` (LLM prose — it is reworded on every call).
 
 # 4. Enable the LangGraph generator
 cp .env.example .env && echo "ANTHROPIC_API_KEY=sk-..." >> .env
@@ -383,16 +419,16 @@ python -m bench run --live --emit
 
 ## 11. Where the human edits go
 
-Grep the codebase for `HUMAN` — every unconfirmed value is marked.
+Grep the codebase for `HUMAN` — every remaining unconfirmed value is marked.
 
 | Priority | File | What to fix |
 |---|---|---|
-| **1** | `bench/agent/adapter.py` → `CLAIM_PATHS` | Dotted JSON paths into the agent's real response. **This single dict fixes most extraction failures.** |
-| **2** | `config.yaml` → `ans.search_base` | Currently a guess. Confirm the real host. |
-| **3** | `bench/ans/registry.py` | Field names in search / TL responses (`_first()` calls) |
-| 4 | `config.yaml` → `target.endpoint`, `transport.mcp_tool` | If the card doesn't expose `url`, or you use MCP |
-| 5 | `bench/agent/transport.py` | A2A envelope if the agent rejects `message/send` |
-| 6 | `bench/report/emit.py` | Observation payload, once the Go `port.Signal` impls exist |
+| **1** | `bench/report/emit.py` | Observation payload, once the Go `port.Signal` impls exist. **The only thing between a real score and the Trust Index.** |
+| **2** | `bench/ans/identity.py` → `TODO(b)` | Validate the identity cert. The `x5c` chain and the `ans://` URI SAN are already in the trust card; the Merkle proof is already in the TL response. Both currently ignored. |
+| **3** | `bench/assertions/runner.py` → `drift.card_vs_trust` | Looks for `trust_card["functions"]`, which the real trust card does not have (it has `endpoints`, `keys`). The test therefore **always passes** — claim drift is currently undetectable. |
+| 4 | `bench/agent/adapter.py` → `_from_evidence` | Per-agent response shapes. Confirmed for `dnsdoc`; redo for any new target. |
+| 5 | `bench/agent/transport.py` → `MCPTransport` | Untested and wrong: uses the A2A url not `/mcp`, sends the whole prompt as the `domain` arg, no `initialize` handshake, does not parse event streams. |
+| 6 | `config.yaml` → `target.endpoint`, `transport.mcp_tool` | If the card doesn't expose `url`, or you use MCP |
 
 ---
 
@@ -404,14 +440,21 @@ Three edits, all small:
 # 1. bench/oracles/registry.py — teach us the true answer
 ORACLES["dns.caa"] = _dns.caa
 
-# 2. bench/agent/adapter.py — teach us to read the agent's answer
-CLAIM_PATHS["dns.caa"] = ["dns.caa", "caa.records"]
+# 2. bench/agent/adapter.py — teach us to read the agent's answer.
+#    Preferred: a branch in _from_evidence() reading the agent's STRUCTURED block.
+#    CLAIM_PATHS is the fallback for agents that return flat JSON.
+if claim == "dns.caa":
+    return bool(dns.get("CAA")) if dns else None
 
 # 3. bench/assertions/fixtures.py — the test itself
 _o("dns-caa-present", "dns.caa", "cloudflare.com", M, "bool"),
 ```
 
 That's it. The router, runner, comparator, report and score all pick it up automatically.
+
+**Two rules for the new oracle:** it must `raise OracleUnavailable` when it cannot compute
+truth (never return `None`, never a default), and it must return a real `bool`/`list`/`int`
+— not a prose string the comparator would have to guess at.
 
 ---
 
@@ -421,22 +464,32 @@ Be honest about this in the demo. Judges penalize overclaiming, not simulation.
 
 | Component | Code | Proven? |
 |---|---|---|
-| Oracles (DNS/TLS/HTTP) | ✅ | ✅ ran live, real network |
-| Assertions + comparators + scoring | ✅ | ✅ 17 unit tests pass |
+| Oracles (DNS/TLS/HTTP) | ✅ | ✅ ran live; `selftest` passes; verdict/unavailable boundary unit-tested |
+| Assertions + comparators + scoring | ✅ | ✅ 50 unit tests pass |
 | Report + JSON output | ✅ | ✅ |
 | Mock pipeline end-to-end | ✅ | ✅ runs clean, finds 2 HIGH failures |
-| LangGraph graph structure + validation | ✅ | ⚠️ validation tested; LLM call untested (no key at build time) |
-| ANS registry search | ✅ | ❌ **never hit live** — endpoint is a guess |
-| ANS transparency log | ✅ | ❌ **never hit live** — base URL confirmed, fields not |
-| TLS fingerprint drift check | ✅ | ⚠️ logic sound; build sandbox MITM'd TLS |
-| A2A / MCP transports | ✅ | ❌ **never hit a real agent** |
-| Trust Index emit | ✅ | ❌ payload shape is a guess |
-| Identity-cert URI SAN validation | ❌ | stubbed — needs GoDaddy private-CA root |
+| **ANS registry search** | ✅ | ✅ **live** — discovers `dnsdoc` by host at `api.godaddy.com` |
+| **ANS transparency log** | ✅ | ✅ **live** — sealed `serverCert.fingerprint` parsed |
+| **TLS fingerprint drift check** | ✅ | ⚠️ **match** proven live; a **mismatch** has never been observed (see below) |
+| **A2A transport** | ✅ | ✅ **live** — real responses from `dnsdoc.webmesh.ai` |
+| **Live pipeline end-to-end** | ✅ | ✅ `behavior_score=87`, identity VERIFIED, 0 HIGH failures |
+| Claim-drift detection | ✅ | ❌ **vacuous** — looks for a `functions` key the real trust card lacks |
+| LangGraph graph structure + validation | ✅ | ⚠️ validation tested; LLM call still untested (no key used yet) |
+| MCP transport | ⚠️ | ❌ never hit a real agent, and known wrong (see §11) |
+| Trust Index emit | ✅ | ❌ payload shape is still a guess |
+| Identity-cert / Merkle-proof validation | ❌ | stubbed — but the `x5c` chain and proof are already in responses we fetch |
 | Go `port.Signal` impls | ❌ | not started |
 
-**Why so much is unproven:** the build environment's egress allowlist blocked
-`webmesh.ai` and `*.godaddy.com`. Everything network-facing has a mock fallback and a
-`probe-*` command so first contact with the live service is a 2-minute fix, not a rewrite.
+**On the drift check:** we have proven the *positive* case — the live TLS fingerprint for
+`dnsdoc.webmesh.ai` equals the one sealed in the transparency log. We have never seen the
+check *fail*, because we do not control any registered agent's certificate. Registering our
+own agent would let us rotate a cert and demonstrate drift firing. Say this plainly if asked.
+
+**Honesty note:** two correctness bugs were found and fixed after the first live run, and
+both had produced wrong verdicts in *both* directions. Oracles were reporting network
+failures as facts about the target, and the `bool` comparator was coercing any unrecognised
+string to `True` — so an agent answering "certificate validation failed" was graded as if it
+had said "valid". Any score produced before those fixes should be discarded.
 
 ---
 
@@ -444,16 +497,29 @@ Be honest about this in the demo. Judges penalize overclaiming, not simulation.
 
 Roughly in priority order:
 
-- [ ] **Run `probe-registry --live` and `probe-agent --live`, fix field names** ← do this first
-- [ ] Verify `selftest` passes on a clean laptop
-- [ ] Get one real `--live` run producing a real `behavior_score`
-- [ ] Fork `agent-trust-discovery`, write 3 Go signals under the `behavior` dimension:
-      `capabilityaccuracy`, `capabilitycoverage`, `responseintegrity`
+- [x] ~~Run `probe-registry --live` and `probe-agent --live`, fix field names~~
+- [x] ~~Verify `selftest` passes on a clean laptop~~ (needs the CA-store fix — see §16)
+- [x] ~~Get one real `--live` run producing a real `behavior_score`~~ → **87**
+- [ ] **Fork `agent-trust-discovery`, write 3 Go signals under the `behavior` dimension:**
+      `capabilityaccuracy`, `capabilitycoverage`, `responseintegrity` ← **do this first now**
 - [ ] Add weights for them in `config/default-profile.yaml`
-- [ ] Align `emit.py` payload with those signals; demo behavior going 0 → N
-- [ ] Sweep the whole Webmesh fleet (legit agents should score well, the Rogue Supplier
-      should score badly — that's self-validation against sponsor-authored ground truth)
-- [ ] Identity-cert URI SAN validation (`TODO(b)` in `ans/identity.py`)
+- [ ] Align `emit.py` payload with those signals; demo behavior going 0 → 87
+- [ ] Fix claim-drift detection — compare agent-card skills vs trust-card `endpoints` vs
+      registry metadata. Currently always passes, so drift is undetectable.
+- [ ] Verify the Merkle inclusion proof (TL returns leafHash / leafIndex / path / signed
+      root; we ignore all of it). `ans-verify` in the `ans` repo does this — RFC 6962
+      `SHA-256(0x00 || payload)`.
+- [ ] Identity-cert validation (`TODO(b)` in `ans/identity.py`) — the trust card ships the
+      `x5c` chain from GoDaddy's Private ANS Issuing CA with the `ans://` URI SAN embedded
+- [ ] Register our own agent with production ANS, so we can rotate a cert and show the
+      drift check *failing*
+- [ ] Sweep the fleet — 484 agents are discoverable, 30 outside the two bulk domains serve
+      an agent card. Legit agents should score well, `rogue-supplier.webmesh.ai` badly.
+      Note: the rogue agent fails on *spending-mandate* rules, which our oracles cannot
+      check — it needs new oracles, or score it on schema/consistency only.
+- [ ] Open live finding: `dns.dnssec` extraction fails on both assertions — the agent never
+      reports DNSSEC although the prompt asks for it. Decide: genuine agent coverage gap
+      (keep as a failure) or out of scope (skip it)?
 - [ ] `--scripted` fallback that replays cached responses, so a wifi failure mid-demo
       doesn't kill the pitch
 
@@ -465,24 +531,41 @@ Three roughly independent workstreams with clean interfaces:
 
 | Owner | Scope | Files |
 |---|---|---|
-| **A — Live integration** | Make `--live` actually work. Probe, fix field names, fix extraction. Highest risk, do first. | `ans/registry.py`, `agent/adapter.py`, `agent/transport.py`, `config.yaml` |
-| **B — Go / Trust Index** | Fork `agent-trust-discovery`, run `make demo`, write the 3 behavior signals, wire the import | separate repo + `report/emit.py` |
-| **C — Tests + demo** | More oracles and assertions, fleet sweep, `--scripted` mode, rehearsal | `oracles/*`, `assertions/fixtures.py` |
+| **A — Go / Trust Index** | ← **now the critical path.** Fork `agent-trust-discovery`, run `make demo`, write the 3 behavior signals, wire the import. Nothing else closes the loop. | separate repo + `report/emit.py` |
+| **B — ANS crypto depth** | Merkle proof verification, identity-cert `x5c` validation, fix claim drift, register our own agent to demo drift firing | `ans/identity.py`, `ans/registry.py`, `assertions/runner.py` |
+| **C — Coverage + demo** | Fleet sweep, more oracles and assertions, `--scripted` mode, rehearsal | `oracles/*`, `assertions/fixtures.py` |
 
-A and B can work fully in parallel — they only meet at the `emit.py` payload.
+All three are independent — A and B touch different repos, and C only adds tests. ~~Live
+integration~~ is done; that work is now folded into B.
 
 ---
 
 ## 16. Troubleshooting
+
+**`selftest` says `cloudflare.com` chain is NOT valid** ← most common setup failure
+Your Python has no CA trust store, so every verified handshake fails and the oracle calls
+good sites broken. Happens with python.org builds on macOS, which ship their own OpenSSL and
+expect a separate cert step. Either:
+
+```bash
+/Applications/Python\ 3.x/Install\ Certificates.command      # the python.org way
+# or, inside the venv:
+pip install certifi && export SSL_CERT_FILE=$(python -c "import certifi; print(certifi.where())")
+```
+
+To make it permanent, append that `export` to `.venv/bin/activate` (use `$VIRTUAL_ENV` for
+the path so it survives moving the repo). Note `.venv/` is gitignored, so **every teammate
+fixes this on their own machine** — it does not travel with a `git pull`.
 
 **`selftest` says `expired.badssl.com` has a valid chain**
 Your network is MITM-ing TLS (corporate proxy, Zscaler, some VPNs). The oracle is lying.
 Switch networks or use a personal hotspot. **Do not trust any score until selftest passes.**
 
 **Every oracle assertion fails with "extraction failed"**
-`extract()` returned `None` — the agent's response shape doesn't match `CLAIM_PATHS`.
-Run `python -m bench probe-agent --live`, look at the raw response, fix the dotted paths.
-This is expected on first contact.
+`extract()` returned `None` — the agent's response shape isn't handled in `adapter.py`.
+Run `python -m bench probe-agent --live`, look at the raw response, and add a branch to
+`_from_evidence()` (or fix `CLAIM_PATHS` if the agent returns flat JSON). Expected on first
+contact with any new agent.
 
 **`OracleUnavailable: DNS TXT ...: LifetimeTimeout`**
 DNS query timed out (we already retry over TCP). The assertion is *skipped*, not failed —
@@ -496,5 +579,19 @@ The agent card has no `url` field. Set `target.endpoint` in `config.yaml` manual
 `summary.notes` in the report — the reason is recorded there. The pipeline continues either way.
 
 **`registry_found: false`**
-The search API returned nothing for the host. Either `search_base` is wrong or the query
-parameter name differs. Run `probe-registry --live` to see the raw response.
+The search API returned nothing for the host. Check `search_base` is `https://api.godaddy.com`
+(the older `registry.ans.godaddy.com` does not resolve). Note the search is **fuzzy and
+ranked** — a query for `dnsdoc.webmesh.ai` returns ~20 agents with the target well down the
+list, so match `agentHost` exactly and follow the `next` page token rather than assuming the
+first hit is right. `host=` and `agentHost=` filters return HTTP 400; they are not supported.
+Run `probe-registry --live` to see the raw response.
+
+**An assertion says `could not interpret '...' as true/false`**
+Extraction returned something the `bool` comparator will not guess at. This is deliberate —
+fix the extraction in `adapter.py` so it returns a real boolean. Do **not** widen the
+comparator's vocabulary to make it pass.
+
+**Everything is skipped (`passed=None`) rather than graded**
+Ground truth could not be computed. Check `summary` and each assertion's `error`: a resolver
+outage, no network, or a blocked port will skip the whole oracle tier. That is correct
+behaviour, but it means the score is measuring nothing — the pass rates exclude skips.
