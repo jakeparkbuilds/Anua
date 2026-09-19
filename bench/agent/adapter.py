@@ -138,8 +138,8 @@ def _tls_ok(tls):
     return tls.get("reachable") is True or any(k in tls for k in _TLS_OK_KEYS)
 
 def _from_evidence(ev, claim):
-    dns  = ev.get("dns")  if isinstance(ev.get("dns"),  dict) else {}
-    tls  = ev.get("tls")  if isinstance(ev.get("tls"),  dict) else {}
+    dns = ev.get("dns") if isinstance(ev.get("dns"), dict) else {}
+    tls = ev.get("tls") if isinstance(ev.get("tls"), dict) else {}
     http = ev.get("http") if isinstance(ev.get("http"), dict) else {}
     tls_err = str(tls.get("error") or "").lower()
 
@@ -147,7 +147,7 @@ def _from_evidence(ev, claim):
         return sorted(dns["A"]) if "A" in dns else None
     if claim == "dns.mx":
         if "MX" not in dns: return None
-        return sorted({str(x).split()[-1].rstrip(".").lower() for x in dns["MX"]})
+        return sorted({h for h in (str(x).split()[-1].rstrip(".").lower() for x in dns["MX"]) if h})
     if claim == "dns.resolves":
         if not dns: return None
         return any(dns.get(k) for k in ("A", "AAAA", "CNAME", "MX", "NS", "TXT"))
@@ -171,6 +171,7 @@ def _from_evidence(ev, claim):
         if "expired" in tls_err: return True
         return False if _tls_ok(tls) else None
     if claim == "tls.hostname_match":
+        if _bool(tls.get("hostname_matches_san")) is not None: return tls["hostname_matches_san"]
         if _bool(tls.get("hostname_match")) is not None: return tls["hostname_match"]
         if any(w in tls_err for w in ("hostname mismatch", "not valid for", "doesn't match")): return False
         return True if _tls_ok(tls) else None
