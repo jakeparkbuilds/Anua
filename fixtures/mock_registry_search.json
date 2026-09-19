@@ -1,0 +1,10 @@
+[
+  {
+    "ansId": "e1b465ae-e117-43a1-9e55-6ba66b059146",
+    "ansName": "ans://v1.0.0.dnsdoc.webmesh.ai",
+    "agentHost": "dnsdoc.webmesh.ai",
+    "agentStatus": "ACTIVE",
+    "protocols": ["a2a", "mcp"],
+    "tags": ["dns", "tls", "diagnostics"]
+  }
+]

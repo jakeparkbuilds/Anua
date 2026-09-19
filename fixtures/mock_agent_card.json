@@ -1,0 +1,14 @@
+{
+  "name": "Domain DNS/SSL Doctor",
+  "description": "Diagnoses a domain's DNS, TLS/SSL, HTTP, and email configuration from live probes.",
+  "url": "https://dnsdoc.webmesh.ai/a2a",
+  "version": "1.0.0",
+  "protocolVersion": "1.0",
+  "capabilities": {"streaming": false},
+  "skills": [
+    {"id": "dns_diagnose", "name": "DNS diagnosis", "description": "A/MX/DNSSEC checks", "tags": ["dns"]},
+    {"id": "tls_diagnose", "name": "TLS diagnosis", "description": "certificate chain, expiry, hostname", "tags": ["tls"]},
+    {"id": "http_check",   "name": "HTTP check",    "description": "HTTPS reachability and status", "tags": ["http"]},
+    {"id": "email_check",  "name": "Email config",  "description": "SPF/DMARC presence", "tags": ["email"]}
+  ]
+}

@@ -1,0 +1,179 @@
+{
+ "expired.badssl.com": {
+  "dns": {
+   "resolves": true,
+   "dnssec": false
+  },
+  "tls": {
+   "valid": true,
+   "expired": false,
+   "hostname_match": true,
+   "issuer": "COMODO RSA Domain Validation Secure Server CA"
+  },
+  "http": {
+   "status": 200,
+   "https": true
+  },
+  "email": {
+   "spf": false,
+   "dmarc": false
+  }
+ },
+ "self-signed.badssl.com": {
+  "dns": {
+   "resolves": true,
+   "dnssec": false
+  },
+  "tls": {
+   "valid": false,
+   "expired": false,
+   "hostname_match": true,
+   "issuer": "BadSSL"
+  },
+  "http": {
+   "status": 200,
+   "https": false
+  },
+  "email": {
+   "spf": false,
+   "dmarc": false
+  }
+ },
+ "wrong.host.badssl.com": {
+  "dns": {
+   "resolves": true,
+   "dnssec": false
+  },
+  "tls": {
+   "valid": false,
+   "expired": false,
+   "hostname_match": false
+  },
+  "http": {
+   "status": 200,
+   "https": false
+  },
+  "email": {
+   "spf": false,
+   "dmarc": false
+  }
+ },
+ "untrusted-root.badssl.com": {
+  "dns": {
+   "resolves": true,
+   "dnssec": false
+  },
+  "tls": {
+   "valid": false,
+   "expired": false,
+   "hostname_match": true
+  },
+  "http": {
+   "status": 200,
+   "https": false
+  },
+  "email": {
+   "spf": false,
+   "dmarc": false
+  }
+ },
+ "cloudflare.com": {
+  "dns": {
+   "resolves": true,
+   "dnssec": false,
+   "a": [
+    "104.16.132.229",
+    "104.16.133.229"
+   ]
+  },
+  "tls": {
+   "valid": true,
+   "expired": false,
+   "hostname_match": true
+  },
+  "http": {
+   "status": 200,
+   "https": true
+  },
+  "email": {
+   "spf": true,
+   "dmarc": true
+  }
+ },
+ "google.com": {
+  "dns": {
+   "resolves": true,
+   "dnssec": false,
+   "mx": [
+    "smtp.google.com"
+   ]
+  },
+  "tls": {
+   "valid": true,
+   "expired": false,
+   "hostname_match": true
+  },
+  "http": {
+   "status": 200,
+   "https": true
+  },
+  "email": {
+   "spf": true,
+   "dmarc": true
+  }
+ },
+ "example.com": {
+  "dns": {
+   "resolves": true,
+   "dnssec": true
+  },
+  "tls": {
+   "valid": true,
+   "expired": false,
+   "hostname_match": true
+  },
+  "http": {
+   "status": 200,
+   "https": true
+  },
+  "email": {
+   "spf": true,
+   "dmarc": true
+  }
+ },
+ "this-domain-does-not-exist-zz.invalid": {
+  "dns": {
+   "resolves": false
+  },
+  "tls": {
+   "valid": null
+  },
+  "http": {
+   "status": null,
+   "https": false
+  },
+  "email": {
+   "spf": false,
+   "dmarc": false
+  }
+ },
+ "badssl.com": {
+  "dns": {
+   "resolves": true,
+   "dnssec": false
+  },
+  "tls": {
+   "valid": true,
+   "expired": false,
+   "hostname_match": true
+  },
+  "http": {
+   "status": 200,
+   "https": true
+  },
+  "email": {
+   "spf": false,
+   "dmarc": false
+  }
+ }
+}

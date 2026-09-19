@@ -1,0 +1,6 @@
+{
+  "ansName": "ans://v1.0.0.dnsdoc.webmesh.ai",
+  "protocols": ["a2a", "mcp"],
+  "schemas": {"a2a": "https://a2a-protocol.org/latest/specification/", "mcp": "https://modelcontextprotocol.io/specification/"},
+  "functions": ["dns_diagnose", "tls_diagnose", "http_check", "email_check", "email_deliverability"]
+}

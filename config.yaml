@@ -1,0 +1,48 @@
+# ans-bench configuration
+# Anything marked HUMAN needs a real value before --live works.
+
+ans:
+  # HUMAN: confirm the production Search API base. agent-trust-discovery's README
+  # says its read API is "wire-compatible with the ANS production Search API"
+  # at GET /v1/ans/registered-agents. The host below is a guess — verify.
+  search_base: "https://registry.ans.godaddy.com"
+  # Confirmed from webmesh.ai transparency-log links:
+  transparency_base: "https://transparency.ans.godaddy.com"
+  rate_limit_per_minute: 100
+  timeout_s: 15
+
+target:
+  host: "dnsdoc.webmesh.ai"
+  # HUMAN: paste the ansId from the transparency-log link on webmesh.ai for this agent.
+  # webmesh.ai lists: https://transparency.ans.godaddy.com/v1/agents/e1b465ae-e117-43a1-9e55-6ba66b059146
+  ans_id: "e1b465ae-e117-43a1-9e55-6ba66b059146"
+  transport: "a2a"          # a2a | mcp
+  # HUMAN: the A2A endpoint is usually the `url` field of the agent card. Leave blank
+  # to auto-read it from the card.
+  endpoint: ""
+  timeout_s: 30
+
+transport:
+  # A2A JSON-RPC method for a single-turn message. Adjust if the card says otherwise.
+  a2a_method: "message/send"
+  # MCP tool name to call if transport=mcp. HUMAN: read from the card's tools list.
+  mcp_tool: ""
+
+generator:
+  enabled: true
+  model: "claude-sonnet-4-6"
+  max_generated: 8
+
+report:
+  out_dir: "out"
+  # Weights for the behavior score. Quality NEVER affects pass/fail — only this blend.
+  weights:
+    oracle: 0.70
+    schema: 0.20
+    quality: 0.10
+
+emit:
+  enabled: false
+  # agent-trust-discovery import endpoint (make demo boots it on :8080 with no auth)
+  import_url: "http://localhost:8080/v1/internal/observations/import"
+  admin_key: ""
