@@ -1,15 +1,22 @@
 {
-  "ansId": "e1b465ae-e117-43a1-9e55-6ba66b059146",
-  "ansName": "ans://v1.0.0.dnsdoc.webmesh.ai",
-  "agentHost": "dnsdoc.webmesh.ai",
-  "agentStatus": "ACTIVE",
-  "serverCert": {
-    "fingerprint": "sha256:MOCKFINGERPRINT0000000000000000000000000000000000000000000000AB",
-    "notAfter": "2027-01-01T00:00:00Z"
+  "merkleProof": {"leafHash": "MOCK", "leafIndex": 0, "path": [], "rootHash": "MOCK", "treeSize": 1},
+  "payload": {
+    "logId": "mock-log",
+    "producer": {
+      "event": {
+        "ansId": "e1b465ae-e117-43a1-9e55-6ba66b059146",
+        "ansName": "ans://v1.0.0.dnsdoc.webmesh.ai",
+        "eventType": "AGENT_REGISTERED",
+        "agent": {"host": "dnsdoc.webmesh.ai", "name": "Domain DNS/SSL Doctor", "version": "v1.0.0"},
+        "attestations": {
+          "domainValidation": "ACME-DNS-01",
+          "serverCert": {"fingerprint": "SHA256:MOCKFINGERPRINT0000000000000000000000000000000000000000000000AB", "type": "X509-DV-SERVER"},
+          "validServerCerts": [{"fingerprint": "SHA256:MOCKFINGERPRINT0000000000000000000000000000000000000000000000AB", "notAfter": "2027-01-01T00:00:00Z", "type": "X509-DV-SERVER"}]
+        },
+        "issuedAt": "2026-06-01T12:00:00Z"
+      }
+    }
   },
-  "validServerCerts": [
-    {"fingerprint": "MOCKFINGERPRINT0000000000000000000000000000000000000000000000AB", "notAfter": "2027-01-01T00:00:00Z"}
-  ],
-  "agentCardHash": "sha256:mockcardhash",
-  "sealedAt": "2026-06-01T12:00:00Z"
+  "schemaVersion": "V1",
+  "status": "ACTIVE"
 }

@@ -27,6 +27,7 @@ VTHacks 14 — GoDaddy "Best Use of ANS" track.
 14. [What's left to build](#14-whats-left-to-build)
 15. [Team split suggestion](#15-team-split-suggestion)
 16. [Troubleshooting](#16-troubleshooting)
+17. [Suites: generated vs regression](#17-suites-generated-vs-regression)
 
 ---
 
@@ -85,16 +86,32 @@ Running `python -m bench run` executes six stages (see `bench/pipeline.py`):
         → pull the sealed TL record
       • live TLS handshake → SHA-256 the peer cert
         → compare to TL-sealed fingerprint (drift check)
-      verified = registry_found AND tl_found AND fingerprint_match
+      Four distinct outcomes, never collapsed into one boolean:
+        VERIFIED   registry + TL + fingerprint match
+        PENDING    TL entry exists but no sealed cert yet (validation in flight)
+        MISMATCH   sealed fingerprint != live cert  ← the alarm
+        NOT_FOUND  no registry entry, or no TL entry for it
 
 [2/6] FETCH SELF-DESCRIPTIONS             bench/agent/card.py
       • /.well-known/agent-card.json  → declared skills, endpoint, protocols
       • /.well-known/ans/trust-card.json → declared functions
 
-[3/6] GENERATE EXTRA TESTS (optional)     bench/generator/graph.py
-      LangGraph: read_card → propose → validate → END
-      An LLM proposes additional test inputs; validate() throws out anything
-      we cannot objectively grade. Survivors are flagged generated=true.
+[3/6] GENERATE THE TEST SUITE            bench/generator/graph.py
+      ★ NOT optional — this is the product. See §17.
+      LangGraph StateGraph:
+        parse_claims   — read the cards, list every capability the agent claims
+        route_claims   — the LLM proposes oracle keys; DETERMINISTIC code then
+                         requires each key to exist in ORACLES. A key we cannot
+                         compute is dropped and the claim falls through to
+                         UNVERIFIABLE. The model suggests; it never asserts.
+        generate_tests — concrete inputs (target + prompt + comparator), one
+                         shared prompt per target so N tests cost 1 agent call
+        validate_tests — reject unknown oracle / bad target / duplicate id;
+                         coerce the comparator to the oracle's return type;
+                         cap at generator.max_generated
+        report_coverage— VERIFIABLE | SCHEMA_ONLY | UNVERIFIABLE, per claim
+      Coverage is a first-class result, not a diagnostic. An agent whose claims
+      nobody can objectively check is itself the finding.
 
 [4/6] BUILD TRANSPORT                     bench/agent/transport.py
       A2A (JSON-RPC message/send) | MCP (tools/call) | Mock (offline fixtures)
@@ -119,13 +136,22 @@ git clone <this-repo> && cd ans-bench
 python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-python -m bench selftest      # 1. MUST PASS — proves the oracles are honest here
-python -m bench run --no-gen  # 2. offline run: mock agent, LIVE oracles
-python -m bench run --live --no-gen   # 3. the real thing: live ANS + live agent
+python -m bench selftest              # 1. MUST PASS — proves the oracles are honest here
+python -m bench oracles               # 2. the 41 oracles the generator may choose from
+python -m bench run --suite regression          # 3. offline: mock agent, LIVE oracles
+python -m bench run --suite regression --live   # 4. live ANS + live agent, no API key
 cat out/latest.json
+
+# 5. the actual product — LangGraph writes the tests for whatever agent you name
+echo "ANTHROPIC_API_KEY=sk-..." >> .env
+python -m bench run --live                          # dnsdoc
+python -m bench run --live --host impact.webmesh.ai # an agent nobody hand-wrote tests for
 ```
 
-**Offline run (step 2):** 26 assertions, `behavior_score` around 75, and **2 HIGH-severity
+Steps 3 and 4 use `--suite regression` on purpose: they need no API key, so they always work
+in a demo. Step 5 is the one that makes the point — see §17.
+
+**Offline run (step 3):** 26 assertions, `behavior_score` around 75, and **2 HIGH-severity
 failures**. Those failures are intentional — `fixtures/mock_responses.json` contains a fake
 agent with three deliberate lies baked in (it claims `expired.badssl.com` has a valid
 certificate). That is the demo: a provable competence failure, caught with zero network
@@ -154,8 +180,11 @@ ans-bench/
 ├── .env.example                 copy → .env, add ANTHROPIC_API_KEY (only needed for step 3)
 │
 ├── bench/
-│   ├── __main__.py              ★ CLI entrypoint. 5 commands: run / selftest / probe-agent
-│   │                              / probe-registry / list
+│   ├── __main__.py              ★ CLI entrypoint. 6 commands: run / selftest / oracles
+│   │                              / probe-agent / probe-registry / list
+│   ├── llm.py                   ★ The single LLM seam. make_llm() raises LOUDLY when
+│   │                              ANTHROPIC_API_KEY is missing; parse_json() tolerates
+│   │                              fenced/prefixed model output. Keys come from env only.
 │   ├── config.py                Pydantic config loader for config.yaml
 │   ├── models.py                ★★ CORE DATA MODEL. Read this first.
 │   │                              Assertion, Kind, Severity, AgentIdentity,
@@ -190,10 +219,28 @@ ans-bench/
 │   │   ├── tls.py               Real handshakes: chain_valid, expired, hostname_match,
 │   │   │                        not_after, issuer. Only cert-verify failures are verdicts.
 │   │   ├── http.py              status code, verified-HTTPS reachability
-│   │   └── registry.py          ORACLES dict: claim → function. LRU-cached per run.
+│   │   ├── packs/               ★★ DOMAIN PACKS — 41 oracles. The generator's vocabulary.
+│   │   │   ├── __init__.py      OracleSpec: key, fn, description, input kind (domain|url),
+│   │   │   │                    return type, default comparator, known-negative targets.
+│   │   │   │                    The description is what the LLM actually reads.
+│   │   │   ├── network.py       13 — the original DNS/TLS/HTTP/email oracles, unchanged
+│   │   │   ├── web.py           23 — title, meta description, h1 count, canonical, JSON-LD,
+│   │   │   │                    Open Graph, viewport, lang, charset, robots.txt,
+│   │   │   │                    sitemap.xml, llms.txt, redirects, status, text length.
+│   │   │   │                    One cached fetch + stdlib html.parser per URL. No new deps.
+│   │   │   └── whois.py         5 — RDAP (RFC 9083): registered, created, expires,
+│   │   │                        registrar, nameservers. 404 = verdict; anything else
+│   │   │                        is OracleUnavailable, never a failure.
+│   │   └── registry.py          PACKS → SPECS → ORACLES (claim → function), LRU-cached.
+│   │                            catalog() renders the specs for the generator prompt.
 │   │
 │   ├── assertions/              ─── TESTS AND GRADING ───
-│   │   ├── fixtures.py          ★ THE 26 HAND-WRITTEN ASSERTIONS. Add tests here.
+│   │   ├── fixtures.py          The hand-written REGRESSION suite (dnsdoc-specific) plus
+│   │   │                        generic_assertions(): agent-agnostic schema/consistency/
+│   │   │                        quality tests that ride along with any generated suite.
+│   │   ├── drift.py             ★ Three-way claim drift: agent card vs trust card vs
+│   │   │                        registry entry (A2A url, version, ansName, functions vs
+│   │   │                        skills, protocols, display name). Was vacuous; now real.
 │   │   ├── router.py            claim → Kind (oracle > schema > consistency > quality)
 │   │   ├── compare.py           comparators: eq / bool / set_eq / set_overlap /
 │   │   │                        contains / date_close / nonempty
@@ -202,10 +249,13 @@ ans-bench/
 │   │   └── runner.py            ★ Executes assertions. Response caching lives here.
 │   │
 │   ├── generator/
-│   │   └── graph.py             ★ LANGGRAPH AGENT.
-│   │                            StateGraph: read_card → propose → validate → END
-│   │                            propose(): ChatAnthropic reads the card, proposes tests
-│   │                            validate(): rejects anything ungradable. The guardrail.
+│   │   └── graph.py             ★★★ THE LANGGRAPH AGENT — the reason this project exists.
+│   │                            parse_claims → route_claims → generate_tests →
+│   │                            validate_tests → report_coverage
+│   │                            Point it at ANY agent card and it writes that agent's
+│   │                            tests. Nodes are closures over an injected llm, so the
+│   │                            whole graph is unit-testable offline with a fake.
+│   │                            validate_tests() + report_coverage() are pure functions.
 │   │
 │   └── report/
 │       ├── builder.py           Assembles Report, computes behavior_score,
@@ -220,14 +270,17 @@ ans-bench/
 │   ├── mock_trust_card.json         has an EXTRA function → triggers claim-drift finding
 │   └── mock_responses.json      ★ the fake agent's answers, WITH 3 DELIBERATE LIES
 │
-├── tests/                       50 offline unit tests — pytest -q
+├── tests/                       57 offline unit tests — pytest -q (no network, no API key)
 │   ├── test_compare.py          comparator semantics
 │   ├── test_compare_strict.py   ★ unreadable values must never become a verdict
 │   ├── test_oracle_unavailable.py ★ the verdict/unavailable boundary, failures injected
 │   ├── test_adapter.py          JSON + regex extraction
 │   ├── test_quality.py          classical ML scoring
 │   ├── test_report.py           behavior_score math, failure ordering
-│   └── test_generator_validate.py   LangGraph validation guardrail
+│   └── test_generator_claims.py ★ the whole generator against a FakeLLM: three-way
+│                                classification, hallucinated oracle keys falling through
+│                                to UNVERIFIABLE, garbage model output never raising,
+│                                comparator coercion, coverage math, loud key failure
 │
 └── out/                         JSON reports land here (gitignored except .gitkeep)
     └── latest.json              most recent run
@@ -319,11 +372,24 @@ python -m bench selftest
     environment (corporate proxy, DNS filter, custom roots) is lying and NO score
     from this machine can be trusted. ALWAYS RUN FIRST.
 
-python -m bench run [--live] [--emit] [--no-gen] [--host H] [--config config.yaml]
+python -m bench run [--live] [--suite S] [--emit] [--host H] [--config config.yaml]
     The pipeline. Default is offline (mock agent, live oracles).
-    --live    hit the real ANS registry and the real agent
-    --no-gen  skip the LangGraph generator (no API key needed)
-    --emit    POST observations to agent-trust-discovery
+    --live          hit the real ANS registry and the real agent
+    --host H        benchmark ANY agent, not just dnsdoc. Nothing is hardcoded.
+    --suite generated   (DEFAULT) LangGraph reads the target's card and writes the
+                        tests. Requires ANTHROPIC_API_KEY — if it is missing this
+                        FAILS LOUDLY. It used to skip silently, which is how a
+                        hardcoded 26-test suite passed for the real product.
+    --suite regression  the hand-written DNS/TLS suite only. No API key, no LLM.
+                        Only meaningful against dnsdoc — see §17.
+    --suite both        run both, merged into one report
+    --no-gen        alias for --suite regression (prints a warning)
+    --emit          POST observations to agent-trust-discovery
+
+python -m bench oracles
+    Print the oracle catalog: every claim key, its input kind (domain|url), return
+    type, default comparator and description. This is verbatim what the generator
+    may choose from — a key not in this list can never back a test.
 
 python -m bench probe-registry --live
     Dump the raw ANS search result + transparency log entry.
@@ -335,7 +401,7 @@ python -m bench probe-agent --live [--domain expired.badssl.com]
     RUN THIS BEFORE --live on a NEW agent, so you can fix extraction in adapter.py.
 
 python -m bench list
-    Print all hand-written assertions.
+    Print all hand-written assertions (the regression suite).
 ```
 
 ---
@@ -402,12 +468,14 @@ python -m bench probe-agent --live
 #    dnsdoc returns {domain, diagnosis, evidence}. Grade from `evidence` (structured),
 #    never from `diagnosis` (LLM prose — it is reworded on every call).
 
-# 4. Enable the LangGraph generator
+# 4. Enable the LangGraph generator. Keys come from env/.env only — never the repo.
 cp .env.example .env && echo "ANTHROPIC_API_KEY=sk-..." >> .env
-export $(cat .env | xargs)
+#    bench/llm.py load_dotenv()s this. A missing key is now a HARD ERROR in generated
+#    mode, not a silent skip. The silent skip is how a hardcoded suite scored 87.
 
-# 5. The real run
+# 5. The real run — generated suite is the default
 python -m bench run --live
+python -m bench run --live --host impact.webmesh.ai   # any agent, nothing hardcoded
 
 # 6. Push into the Trust Index (requires agent-trust-discovery running on :8080)
 git clone https://github.com/agentnameservice/agent-trust-discovery
@@ -464,8 +532,10 @@ Be honest about this in the demo. Judges penalize overclaiming, not simulation.
 
 | Component | Code | Proven? |
 |---|---|---|
-| Oracles (DNS/TLS/HTTP) | ✅ | ✅ ran live; `selftest` passes; verdict/unavailable boundary unit-tested |
-| Assertions + comparators + scoring | ✅ | ✅ 50 unit tests pass |
+| Oracles — network pack (13) | ✅ | ✅ ran live; `selftest` 9/9; verdict/unavailable boundary unit-tested |
+| Oracles — web pack (23) | ✅ | ✅ smoke-tested live against `example.com` and `seo.webmesh.ai` |
+| Oracles — whois/RDAP pack (5) | ✅ | ✅ live against `badssl.com` (created 2015-04-07, MarkMonitor) |
+| Assertions + comparators + scoring | ✅ | ✅ 57 unit tests pass |
 | Report + JSON output | ✅ | ✅ |
 | Mock pipeline end-to-end | ✅ | ✅ runs clean, finds 2 HIGH failures |
 | **ANS registry search** | ✅ | ✅ **live** — discovers `dnsdoc` by host at `api.godaddy.com` |
@@ -473,9 +543,13 @@ Be honest about this in the demo. Judges penalize overclaiming, not simulation.
 | **TLS fingerprint drift check** | ✅ | ⚠️ **match** proven live; a **mismatch** has never been observed (see below) |
 | **A2A transport** | ✅ | ✅ **live** — real responses from `dnsdoc.webmesh.ai` |
 | **Live pipeline end-to-end** | ✅ | ✅ `behavior_score=87`, identity VERIFIED, 0 HIGH failures |
-| Claim-drift detection | ✅ | ❌ **vacuous** — looks for a `functions` key the real trust card lacks |
-| LangGraph graph structure + validation | ✅ | ⚠️ validation tested; LLM call still untested (no key used yet) |
+| Claim-drift detection | ✅ | ✅ **fixed** — real three-way diff; fires on the mock, clean on 3 live agents |
+| Identity: 4 states (VERIFIED/PENDING/MISMATCH/NOT_FOUND) | ✅ | ✅ VERIFIED and NOT_FOUND seen live; MISMATCH still never observed |
+| Paywalled/auth-walled agents | ✅ | ✅ **live** — `seo.webmesh.ai` returns HTTP 402 (x402). Left **ungraded**, never scored as incompetence |
+| **Generator: writes tests for an arbitrary agent** | ✅ | ⚠️ **proven offline** against a FakeLLM; the live LLM call is still unrun (no API key on this machine) |
+| Coverage report (VERIFIABLE/SCHEMA_ONLY/UNVERIFIABLE) | ✅ | ⚠️ same — computed correctly offline, not yet against a real model |
 | MCP transport | ⚠️ | ❌ never hit a real agent, and known wrong (see §11) |
+| Benchmark server + web UI | ❌ | not started (phase 2/3) |
 | Trust Index emit | ✅ | ❌ payload shape is still a guess |
 | Identity-cert / Merkle-proof validation | ❌ | stubbed — but the `x5c` chain and proof are already in responses we fetch |
 | Go `port.Signal` impls | ❌ | not started |
@@ -484,6 +558,13 @@ Be honest about this in the demo. Judges penalize overclaiming, not simulation.
 `dnsdoc.webmesh.ai` equals the one sealed in the transparency log. We have never seen the
 check *fail*, because we do not control any registered agent's certificate. Registering our
 own agent would let us rotate a cert and demonstrate drift firing. Say this plainly if asked.
+
+**The bug that mattered most:** the first version of this project had 26 tests hardcoded for
+one agent and treated the generator as an optional add-on that skipped silently when no API
+key was present. It scored a real agent 87/100 with the generator having never once run. That
+is the same self-declaration problem ANS exists to fix, reproduced inside the tool meant to
+fix it. The inversion is now the other way round: the generated suite is the default, the
+hand-written suite is a named regression fallback, and a missing key is a hard error.
 
 **Honesty note:** two correctness bugs were found and fixed after the first live run, and
 both had produced wrong verdicts in *both* directions. Oracles were reporting network
@@ -595,3 +676,69 @@ comparator's vocabulary to make it pass.
 Ground truth could not be computed. Check `summary` and each assertion's `error`: a resolver
 outage, no network, or a blocked port will skip the whole oracle tier. That is correct
 behaviour, but it means the score is measuring nothing — the pass rates exclude skips.
+
+---
+
+## 17. Suites: generated vs regression
+
+There are two suites and the difference is the whole point of the project.
+
+### `--suite generated` (the default)
+
+The LangGraph agent reads the target's `agent-card.json` and `trust-card.json`, enumerates
+the capabilities the agent claims *in the agent's own words*, and writes tests for them. It
+knows nothing about DNS, or about dnsdoc, or about any particular agent. Point it at a
+booking agent and it writes booking-agent tests — or, more honestly, it tells you it cannot,
+and that answer is itself the finding.
+
+The LLM is never a judge and never the last word:
+
+| The LLM does | Deterministic code does |
+|---|---|
+| lists the claims it reads in the card | nothing — the claims are the agent's, quoted |
+| proposes an oracle key per claim | **requires the key to exist in `ORACLES`**, else the claim is UNVERIFIABLE |
+| proposes test inputs and prompts | validates the target, coerces the comparator to the oracle's return type, dedupes, caps |
+| reads the agent's reply for a value | requires a verbatim quote from the reply, else discards the value |
+| — | computes `expected` from the oracle. Always. Never the model. |
+
+A hallucinated oracle key cannot become a passing test. It becomes an UNVERIFIABLE claim
+with the invented key named in the reason.
+
+### Coverage is a result, not a diagnostic
+
+Every claim lands in exactly one bucket:
+
+- **VERIFIABLE** — an oracle in `ORACLES` computes the true answer independently. Gradable.
+- **SCHEMA_ONLY** — we can check the shape of the answer but not its truth
+  ("returns a prioritized list"). Worth testing, worth labelling as weaker evidence.
+- **UNVERIFIABLE** — nobody can objectively check it ("provides expert guidance").
+
+`coverage_ratio = verifiable / claims_found`. A low ratio is not a failure of the benchmark,
+it is a finding about the agent. `dnsdoc` declaring a single opaque skill called *diagnose*
+is exactly the self-declaration problem this project exists to expose: an agent can claim
+anything, and until somebody computes the answer independently, nothing in the registry
+distinguishes a good one from a confident one.
+
+### `--suite regression`
+
+The 26 hand-written DNS/TLS/HTTP/email assertions. They are specific to `dnsdoc.webmesh.ai`
+and they are kept for exactly two reasons:
+
+1. **They are the control.** They are known-good, human-authored, and they have caught real
+   bugs. When the generated suite disagrees with them on the same agent, one of the two is
+   wrong and that is worth knowing.
+2. **They run with no API key and no LLM**, so `make run-live` always works in a demo.
+
+Do not read a regression score for an agent other than dnsdoc. It will test DNSSEC on a
+booking agent and report an honest "I don't do that" as a failure.
+
+`--suite both` runs them together and merges the report.
+
+### Agents that refuse to answer
+
+`seo.webmesh.ai` gates its A2A endpoint behind x402 (USDC on Base) and answers `HTTP 402`.
+An agent declining to serve us is **not** a competence verdict. `AgentUnavailable` marks
+every oracle assertion `passed=None` (ungraded, excluded from the pass rate) and fails only
+`endpoint.reachable`, with the refusal reason as evidence. The same path covers 401/403.
+The card is still read and coverage is still reported — you learn what the agent claims and
+how much of it is checkable, you just do not learn whether it is telling the truth.

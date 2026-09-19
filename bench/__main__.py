@@ -1,6 +1,7 @@
 """CLI.
 
-  python -m bench run [--live] [--emit] [--no-gen] [--host H] [--config config.yaml]
+  python -m bench run [--live] [--suite generated|regression|both] [--emit] [--host H]
+                      [--no-gen = --suite regression]
   python -m bench selftest              # prove the oracles are honest in THIS environment
   python -m bench probe-agent --live    # print raw agent card + one raw response
   python -m bench probe-registry --live # print raw registry search + TL entry
@@ -17,10 +18,16 @@ def cmd_run(args):
     cfg = load(args.config, live=args.live)
     if args.host: cfg.target.host = args.host
     if args.emit: cfg.emit.enabled = True
+    suite = args.suite or ("regression" if args.no_gen else None)
     from .pipeline import run
-    r = run(cfg, generate_tests=(False if args.no_gen else None))
-    print(json.dumps({"agent": r.agent, "behavior_score": r.behavior_score,
-                      "failures": len(r.failures), "high": r.summary["high_severity_failures"]}, indent=2))
+    r = run(cfg, suite=suite)
+    out = {"agent": r.agent, "suite": r.suite, "identity": r.identity.status, "behavior_score": r.behavior_score,
+           "failures": len(r.failures), "high": r.summary["high_severity_failures"]}
+    if r.coverage:
+        out["coverage"] = {"claims_found": r.coverage.claims_found, "verifiable": r.coverage.verifiable,
+                           "schema_only": r.coverage.schema_only, "unverifiable": r.coverage.unverifiable,
+                           "coverage_ratio": r.coverage.coverage_ratio, "tests_generated": r.coverage.tests_generated}
+    print(json.dumps(out, indent=2))
     return 0
 
 
@@ -84,8 +91,18 @@ def cmd_probe_registry(args):
 
 def cmd_list(args):
     from .assertions.fixtures import all_assertions
+    print("# regression suite (hand-written)")
     for a in all_assertions():
         print(f"{a.kind.value:<11} {a.severity.value:<6} {a.id:<28} {a.claim:<20} {a.input}")
+    return 0
+
+
+def cmd_oracles(args):
+    from .oracles.registry import PACKS
+    for pack, specs in PACKS.items():
+        print(f"# {pack} ({len(specs)})")
+        for s in specs.values():
+            print(f"  {s.key:<30} {s.input:<7} {s.returns:<5} {s.comparator:<12} {s.description}")
     return 0
 
 
@@ -96,7 +113,8 @@ def main(argv=None):
 
     r = sub.add_parser("run");           r.set_defaults(fn=cmd_run)
     r.add_argument("--live", action="store_true"); r.add_argument("--emit", action="store_true")
-    r.add_argument("--no-gen", action="store_true"); r.add_argument("--host")
+    r.add_argument("--suite", choices=("generated", "regression", "both"))
+    r.add_argument("--no-gen", action="store_true", help="alias for --suite regression"); r.add_argument("--host")
 
     s = sub.add_parser("selftest");      s.set_defaults(fn=cmd_selftest)
 
@@ -108,6 +126,7 @@ def main(argv=None):
     pr.add_argument("--live", action="store_true"); pr.add_argument("--host")
 
     l = sub.add_parser("list");          l.set_defaults(fn=cmd_list)
+    o = sub.add_parser("oracles");       o.set_defaults(fn=cmd_oracles)
 
     args = p.parse_args(argv)
     return args.fn(args)

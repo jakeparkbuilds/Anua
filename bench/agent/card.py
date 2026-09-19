@@ -22,7 +22,7 @@ def _get_json(url: str, timeout: int) -> dict[str, Any]:
         return r.json()
 
 
-def fetch(host: str, timeout: int, live: bool) -> AgentCards:
+def fetch(host: str, timeout: int, live: bool, registry_entry: dict | None = None) -> AgentCards:
     if live:
         agent_card = _get_json(f"https://{host}/.well-known/agent-card.json", timeout)
         try:
@@ -33,8 +33,12 @@ def fetch(host: str, timeout: int, live: bool) -> AgentCards:
         agent_card = json.loads((FIXTURES / "mock_agent_card.json").read_text())
         trust_card = json.loads((FIXTURES / "mock_trust_card.json").read_text())
 
-    cards = AgentCards(agent_card=agent_card, trust_card=trust_card)
+    cards = AgentCards(agent_card=agent_card, trust_card=trust_card, registry_entry=registry_entry or {})
     cards.endpoint = agent_card.get("url") or agent_card.get("endpoint")
+    if not cards.endpoint:
+        for i in agent_card.get("supportedInterfaces", []) or []:
+            if isinstance(i, dict) and i.get("url"):
+                cards.endpoint = i["url"]; break
 
     # A2A cards: skills[] with id/name; some list "capabilities"/"tools"
     skills = agent_card.get("skills") or agent_card.get("tools") or agent_card.get("capabilities") or []
@@ -48,9 +52,15 @@ def fetch(host: str, timeout: int, live: bool) -> AgentCards:
     for k in ("protocols", "supportedProtocols"):
         for p in agent_card.get(k, []) or trust_card.get(k, []):
             protos.add(str(p).lower())
-    if "url" in agent_card:
+    if agent_card.get("url") or agent_card.get("supportedInterfaces"):
         protos.add("a2a")
+    for e in (agent_card.get("capabilities", {}) or {}).get("extensions", []) or []:
+        if isinstance(e, dict) and "modelcontextprotocol" in str(e.get("uri", "")):
+            protos.add("mcp")
     if trust_card.get("mcp") or agent_card.get("mcp"):
         protos.add("mcp")
+    for ep in trust_card.get("endpoints", []) or []:
+        if isinstance(ep, dict) and ep.get("protocol"):
+            protos.add(str(ep["protocol"]).lower())
     cards.declared_protocols = sorted(protos)
     return cards

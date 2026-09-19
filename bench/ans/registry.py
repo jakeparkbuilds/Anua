@@ -58,10 +58,21 @@ class Registry:
         # plausible envelope shapes
         return _first(data, "agents", "items", "results", "data", default=data if isinstance(data, list) else [])
 
-    def find_by_host(self, host: str) -> Optional[dict[str, Any]]:
-        for a in self.search(host, limit=20):
-            if str(_first(a, "agentHost", "host", default="")).lower() == host.lower():
-                return a
+    def find_by_host(self, host: str, display_name: str = "") -> Optional[dict[str, Any]]:
+        """The search is fuzzy and ranked: `query=seo.webmesh.ai` returns 50 agents and
+        misses seo itself, `query=seo` finds it. Try the host, then its first label, then
+        the card's display name. Exact `agentHost` match only."""
+        tried: set[str] = set()
+        for q in (host, host.split(".")[0], display_name):
+            q = (q or "").strip()
+            if not q or q.lower() in tried:
+                continue
+            tried.add(q.lower())
+            for a in self.search(q, limit=50):
+                if str(_first(a, "agentHost", "host", default="")).lower() == host.lower():
+                    return a
+            if not self.live:
+                break
         return None
 
     # ---- transparency log -------------------------------------------------

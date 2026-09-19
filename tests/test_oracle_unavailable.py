@@ -157,3 +157,26 @@ def test_skipped_assertions_excluded_from_pass_rate():
                    [mk("p", True), mk("f", False), mk("s", None)],
                    {"oracle": .7, "schema": .2, "quality": .1}, [])
     assert report.summary["oracle_pass_rate"] == 0.5  # 1 of 2 graded, skipped excluded
+
+
+# --- agent unavailable (paywall / auth wall) -------------------------------
+def test_paywalled_agent_is_ungraded_not_failed(monkeypatch):
+    from bench.agent.transport import AgentUnavailable
+    monkeypatch.setattr("bench.assertions.runner.compute", lambda claim, target: True)
+    calls = []
+
+    class Paywall:
+        def send(self, prompt):
+            calls.append(prompt)
+            raise AgentUnavailable("HTTP 402 payment required")
+
+    r = Runner(Paywall(), AgentCards())
+    o = r.run(Assertion(id="o", kind=Kind.ORACLE, claim="tls.chain_valid", input={"domain": "a.com"},
+                        oracle="tls.chain_valid", comparator="bool"))
+    o2 = r.run(Assertion(id="o2", kind=Kind.ORACLE, claim="tls.expired", input={"domain": "b.com"},
+                         oracle="tls.expired", comparator="bool"))
+    s = r.run(Assertion(id="s", kind=Kind.SCHEMA, claim="endpoint.reachable", input={"domain": "a.com"}, comparator="nonempty"))
+    assert o.passed is None and "NO VERDICT" in o.evidence
+    assert o2.passed is None
+    assert s.passed is False and "402" in s.evidence
+    assert len(calls) == 1            # after the first refusal we stop calling

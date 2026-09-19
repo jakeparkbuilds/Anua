@@ -39,19 +39,32 @@ def live_server_fingerprint(host: str, port: int = 443, timeout: int = 10) -> tu
     return fp, uri_san
 
 
-def verify(host: str, registry: Registry, ans_id_hint: str = "", live: bool = False) -> AgentIdentity:
+def verify(host: str, registry: Registry, ans_id_hint: str = "", live: bool = False,
+           entry_summary: Optional[dict] = None, trust_card: Optional[dict] = None) -> AgentIdentity:
+    """Four outcomes, and the UI must tell them apart:
+      VERIFIED   registry hit + TL entry + live fingerprint == sealed fingerprint
+      PENDING    TL entry exists but no sealed server cert yet (registration in flight)
+      MISMATCH   live fingerprint != sealed fingerprint  (drift — the headline alarm)
+      NOT_FOUND  no registry hit and no TL entry
+    Anything else is UNVERIFIED (e.g. handshake failed)."""
     ident = AgentIdentity(host=host)
+    trust_card = trust_card or {}
 
     # 1. discover
-    entry_summary = registry.find_by_host(host)
+    if entry_summary is None:
+        entry_summary = registry.find_by_host(host)
     if entry_summary:
         ident.registry_found = True
-        ident.ans_id = (entry_summary.get("ansId") or entry_summary.get("id")
-                        or entry_summary.get("agentId") or ans_id_hint or None)
+        ident.ans_id = (entry_summary.get("agentId") or entry_summary.get("ansId")
+                        or entry_summary.get("id") or ans_id_hint or None)
         ident.ans_name = entry_summary.get("ansName") or entry_summary.get("name")
     else:
-        ident.notes.append("not found via registry search; falling back to ans_id hint")
-        ident.ans_id = ans_id_hint or None
+        # The agent's own trust card / agent card carry the ansId — use them so a
+        # search miss (fuzzy ranking, or PENDING_VALIDATION) still reaches the TL.
+        ident.ans_id = (ans_id_hint or trust_card.get("agentId") or trust_card.get("ansId") or None)
+        ident.ans_name = trust_card.get("ansName")
+        ident.notes.append("not found via registry search"
+                           + ("; using ansId from the agent's own cards" if ident.ans_id else ""))
 
     # 2. transparency log
     if ident.ans_id:
@@ -61,7 +74,7 @@ def verify(host: str, registry: Registry, ans_id_hint: str = "", live: bool = Fa
             ident.ans_name = ident.ans_name or Registry.tl_ans_name(tl)
             ident.tl_server_fingerprint = Registry.tl_server_fingerprint(tl)
             if not ident.tl_server_fingerprint:
-                ident.notes.append("TL entry found but no server cert fingerprint extracted — check field names in registry.py")
+                ident.notes.append("TL entry present, certificate not yet sealed (registration pending)")
         else:
             ident.notes.append("no transparency log entry for ans_id")
 
@@ -84,4 +97,14 @@ def verify(host: str, registry: Registry, ans_id_hint: str = "", live: bool = Fa
         ident.notes.append("MOCK MODE: fingerprint match simulated")
 
     ident.verified = bool(ident.registry_found and ident.tl_entry_found and ident.fingerprint_match)
+    if ident.verified:
+        ident.status = "VERIFIED"
+    elif ident.fingerprint_match is False:
+        ident.status = "MISMATCH"
+    elif ident.tl_entry_found and not ident.tl_server_fingerprint:
+        ident.status = "PENDING"
+    elif not ident.registry_found and not ident.tl_entry_found:
+        ident.status = "NOT_FOUND"
+    else:
+        ident.status = "UNVERIFIED"
     return ident

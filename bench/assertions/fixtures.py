@@ -89,3 +89,38 @@ QUALITY_ASSERTIONS: list[Assertion] = [
 
 def all_assertions() -> list[Assertion]:
     return [*ORACLE_ASSERTIONS, *SCHEMA_ASSERTIONS, *CONSISTENCY_ASSERTIONS, *QUALITY_ASSERTIONS]
+
+
+# ---------------------------------------------------------------------------
+# Suites. `regression` is the 26 hand-written tests above — they prove OUR grader is
+# honest against known truths, and they only fit a DNS/TLS agent. `generated` is what
+# the LangGraph generator writes for THIS agent, plus the agent-agnostic contract tests.
+# ---------------------------------------------------------------------------
+SUITES = ("generated", "regression", "both")
+
+
+def regression_assertions() -> list[Assertion]:
+    return all_assertions()
+
+
+def generic_assertions(generated: list[Assertion]) -> list[Assertion]:
+    """Schema / consistency / quality tests that apply to any agent. Consistency and
+    quality reuse the first generated oracle test's prompt so no extra agent call is
+    needed and the prompt is one the agent actually understands."""
+    seed = next((a for a in generated if a.kind == Kind.ORACLE), None)
+    out: list[Assertion] = []
+    for s in SCHEMA_ASSERTIONS:
+        c = s.model_copy(deep=True)
+        if c.claim == "endpoint.reachable" and seed:
+            c.input, c.prompt = dict(seed.input), seed.prompt
+        out.append(c)
+    if seed:
+        out.append(Assertion(id="consistency-repeat", kind=Kind.CONSISTENCY, claim=seed.claim, input=dict(seed.input),
+                             prompt=seed.prompt, comparator="eq", severity=L,
+                             rationale="Same input twice must give same verdict"))
+        out.append(Assertion(id="quality-explainability", kind=Kind.QUALITY, claim="quality.explainability",
+                             input=dict(seed.input), prompt=seed.prompt, comparator="nonempty", severity=Severity.INFO,
+                             rationale="Classical-ML scored; never affects pass/fail"))
+    else:
+        out.extend(a.model_copy(deep=True) for a in QUALITY_ASSERTIONS)
+    return out

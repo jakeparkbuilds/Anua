@@ -29,7 +29,7 @@ class TransportCfg(BaseModel):
 class GeneratorCfg(BaseModel):
     enabled: bool = True
     model: str = "claude-sonnet-4-6"
-    max_generated: int = 8
+    max_generated: int = 30
 
 
 class ReportCfg(BaseModel):
@@ -50,6 +50,7 @@ class Config(BaseModel):
     generator: GeneratorCfg = GeneratorCfg()
     report: ReportCfg = ReportCfg()
     emit: EmitCfg = EmitCfg()
+    suite: str = "generated"   # generated | regression | both  (CLI --suite overrides)
     live: bool = False   # set by CLI; False => mock network everywhere
 
 

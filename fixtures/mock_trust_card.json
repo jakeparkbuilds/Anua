@@ -1,6 +1,11 @@
 {
   "ansName": "ans://v1.0.0.dnsdoc.webmesh.ai",
-  "protocols": ["a2a", "mcp"],
-  "schemas": {"a2a": "https://a2a-protocol.org/latest/specification/", "mcp": "https://modelcontextprotocol.io/specification/"},
-  "functions": ["dns_diagnose", "tls_diagnose", "http_check", "email_check", "email_deliverability"]
+  "agentDisplayName": "dnsdoc.webmesh.ai",
+  "version": "1.0.0",
+  "agentHost": "dnsdoc.webmesh.ai",
+  "endpoints": [
+    {"protocol": "A2A", "agentUrl": "https://dnsdoc.webmesh.ai/a2a", "metaDataUrl": "https://dnsdoc.webmesh.ai/.well-known/agent-card.json"}
+  ],
+  "keys": [{"kty": "OKP", "crv": "Ed25519", "x": "MOCK", "use": "sig", "kid": "mock-kid", "x5c": []}],
+  "agentId": "e1b465ae-e117-43a1-9e55-6ba66b059146"
 }

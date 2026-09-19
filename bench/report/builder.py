@@ -6,7 +6,7 @@ HIGH-severity oracle failures are listed first in `failures`.
 """
 from __future__ import annotations
 from typing import Any
-from ..models import Report, Assertion, Kind, AgentIdentity, AgentCards, QualityScores, Severity
+from ..models import Report, Assertion, Kind, AgentIdentity, AgentCards, QualityScores, Severity, CoverageReport
 
 _SEV_ORDER = {Severity.HIGH: 0, Severity.MEDIUM: 1, Severity.LOW: 2, Severity.INFO: 3}
 
@@ -17,7 +17,8 @@ def _rate(items: list[Assertion]) -> float | None:
 
 
 def build(agent_label: str, host: str, mode: str, identity: AgentIdentity, cards: AgentCards,
-          assertions: list[Assertion], weights: dict[str, float], notes: list[str]) -> Report:
+          assertions: list[Assertion], weights: dict[str, float], notes: list[str],
+          coverage: CoverageReport | None = None, suite: str = "regression") -> Report:
     by_kind = {k: [a for a in assertions if a.kind == k] for k in Kind}
     oracle_rate = _rate(by_kind[Kind.ORACLE] + by_kind[Kind.CONSISTENCY])
     schema_rate = _rate(by_kind[Kind.SCHEMA])
@@ -44,21 +45,31 @@ def build(agent_label: str, host: str, mode: str, identity: AgentIdentity, cards
     high = sum(1 for a in failures if a.severity == Severity.HIGH)
     n_or = len([a for a in by_kind[Kind.ORACLE] if a.passed is not None])
     p_or = sum(1 for a in by_kind[Kind.ORACLE] if a.passed)
+    status = "VERIFIED" if identity.verified else identity.status
+    ident_word = {"VERIFIED": "VERIFIED", "PENDING": "validation PENDING", "MISMATCH": "fingerprint MISMATCH",
+                  "NOT_FOUND": "NOT FOUND"}.get(status, "NOT verified")
     expl = (f"{p_or}/{n_or} oracle assertions passed"
             + (f"; {high} HIGH-severity failure(s)" if high else "")
-            + (f"; identity {'VERIFIED' if identity.verified else 'NOT verified'} via ANS")
-            + (f"; {len([a for a in assertions if a.generated])} generated test(s) included" if any(a.generated for a in assertions) else "")
+            + f"; identity {ident_word} via ANS"
+            + (f"; {coverage.verifiable}/{coverage.claims_found} declared claims verifiable"
+               + (f" ({coverage.unverifiable} unverifiable)" if coverage.unverifiable else "") if coverage else "")
+            + (f"; {len([a for a in assertions if a.generated])} generated test(s)" if any(a.generated for a in assertions) else "")
             + ".")
 
     return Report(
         agent=identity.ans_name or agent_label, target_host=host, mode=mode,
         identity=identity, cards=cards, assertions=assertions, quality=quality,
+        coverage=coverage, suite=suite,
         summary={
             "assertions_run": len(assertions),
             "by_kind": {k.value: len(v) for k, v in by_kind.items()},
             "oracle_pass_rate": oracle_rate, "schema_pass_rate": schema_rate,
             "quality_blend": round(q_score, 3), "high_severity_failures": high,
             "generated_count": len([a for a in assertions if a.generated]),
+            "coverage_ratio": coverage.coverage_ratio if coverage else None,
+            "claims_found": coverage.claims_found if coverage else None,
+            "unverifiable_claims": coverage.unverifiable if coverage else None,
+            "identity_status": status,
             "notes": notes,
         },
         behavior_score=behavior, failures=failure_rows, explanation=expl,

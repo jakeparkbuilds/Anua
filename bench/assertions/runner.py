@@ -6,20 +6,43 @@ from typing import Any
 from ..models import Assertion, Kind, AgentCards
 from ..oracles.registry import compute, OracleUnavailable
 from ..agent import adapter
+from ..agent.transport import AgentUnavailable
 from .compare import compare
 
 
 class Runner:
-    def __init__(self, transport, cards: AgentCards):
+    def __init__(self, transport, cards: AgentCards, extractor=None):
         self.t = transport
         self.cards = cards
+        self.extractor = extractor            # adapter.LLMExtractor or None (regression suite)
         self._resp_cache: dict[str, tuple[str, int]] = {}
+        self._claims_by_prompt: dict[str, list[tuple[str, str]]] = {}
+        self._blocked: str | None = None      # set once the agent refuses us (402/401/403)
+
+    def plan(self, assertions: list[Assertion]) -> None:
+        """Group oracle claims by prompt so LLM extraction is one call per response."""
+        for a in assertions:
+            if a.kind in (Kind.ORACLE, Kind.CONSISTENCY):
+                self._claims_by_prompt.setdefault(adapter.build_prompt(a), []).append((a.claim, adapter.target_of(a)))
+
+    def _extract(self, raw: str, a: Assertion):
+        v = adapter.extract(raw, a.claim)
+        if v is None and self.extractor is not None:
+            self.extractor.prime(raw, self._claims_by_prompt.get(adapter.build_prompt(a), []))
+            v = self.extractor.extract(raw, a.claim, adapter.target_of(a))
+        return v
 
     def _ask(self, a: Assertion, force_fresh: bool = False) -> tuple[str, int]:
         prompt = adapter.build_prompt(a)
         if not force_fresh and prompt in self._resp_cache:
             return self._resp_cache[prompt]
-        raw, ms = self.t.send(prompt)
+        if self._blocked:
+            raise AgentUnavailable(self._blocked)   # don't hammer a paywall 30 times
+        try:
+            raw, ms = self.t.send(prompt)
+        except AgentUnavailable as e:
+            self._blocked = str(e)
+            raise
         self._resp_cache[prompt] = (raw, ms)
         return raw, ms
 
@@ -40,6 +63,17 @@ class Runner:
             a.passed = None
             a.score = 0.0
             a.evidence = f"SKIPPED — {a.error}"
+        except AgentUnavailable as e:
+            # The agent would not serve us (payment / auth wall). We could not test
+            # competence, so no verdict — except reachability, which is exactly what failed.
+            a.error = f"agent unavailable: {e}"
+            a.score = 0.0
+            if a.kind == Kind.SCHEMA and a.claim == "endpoint.reachable":
+                a.passed = False
+                a.evidence = f"endpoint refused the call: {e}"
+            else:
+                a.passed = None
+                a.evidence = f"NO VERDICT — {a.error}"
         except Exception as e:  # never let one assertion kill the run
             a.error = f"{type(e).__name__}: {e}"
             a.passed = False
@@ -49,15 +83,15 @@ class Runner:
 
     # ----------------------------------------------------------------------
     def _oracle(self, a: Assertion) -> Assertion:
-        domain = a.input["domain"]
-        a.expected = a.expected_override if a.expected_override is not None else compute(a.oracle, domain)
+        target = adapter.target_of(a)
+        a.expected = a.expected_override if a.expected_override is not None else compute(a.oracle, target)
         if a.expected is None:
             # Belt and braces: oracles raise OracleUnavailable rather than returning None,
             # but if one ever does, never grade the agent against an unknown truth.
-            raise OracleUnavailable(f"oracle {a.oracle} returned no value for {domain}")
+            raise OracleUnavailable(f"oracle {a.oracle} returned no value for {target}")
         raw, ms = self._ask(a)
         a.raw_response, a.latency_ms = raw, ms
-        a.actual = adapter.extract(raw, a.claim)
+        a.actual = self._extract(raw, a)
 
         if a.claim == "http.https_ok" and adapter.https_timed_out(raw):
             a.passed = None
@@ -83,16 +117,17 @@ class Runner:
             a.passed, a.evidence = compare("bool", True, a.actual)
             a.evidence += f"; declared skills: {self.cards.declared_skills}"
         elif c == "drift.card_vs_trust":
-            card_fns = set(self.cards.declared_skills)
-            trust_fns = set(map(str, self.cards.trust_card.get("functions", []) or []))
-            a.expected, a.actual = sorted(card_fns), sorted(trust_fns)
-            if not trust_fns:
-                a.passed, a.evidence = True, "trust card lists no functions; nothing to compare"
-            else:
-                a.passed, a.evidence = compare("set_eq", card_fns, trust_fns)
-                only_trust, only_card = trust_fns - card_fns, card_fns - trust_fns
-                if only_trust:  a.evidence += f"; DRIFT: in trust card but not agent card: {sorted(only_trust)}"
-                if only_card:   a.evidence += f"; DRIFT: in agent card but not trust card: {sorted(only_card)}"
+            from .drift import divergences, sources_present
+            srcs = sources_present(self.cards.agent_card, self.cards.trust_card, self.cards.registry_entry)
+            if len(srcs) < 2:
+                a.passed, a.evidence = None, f"only {srcs} available; nothing to compare against"
+                a.score = 0.0
+                return a
+            diffs = divergences(self.cards.agent_card, self.cards.trust_card, self.cards.registry_entry)
+            a.expected, a.actual = [], diffs
+            a.passed = not diffs
+            a.evidence = (f"{' / '.join(srcs)} agree on url, version, ansName, functions, protocols, name" if not diffs
+                          else "DRIFT: " + "; ".join(diffs))
         elif c == "card.protocol_declared":
             a.actual = a.input["protocol"] in self.cards.declared_protocols
             a.expected = True
@@ -106,7 +141,7 @@ class Runner:
     def _consistency(self, a: Assertion) -> Assertion:
         r1, ms1 = self._ask(a, force_fresh=True)
         r2, ms2 = self._ask(a, force_fresh=True)
-        v1, v2 = adapter.extract(r1, a.claim), adapter.extract(r2, a.claim)
+        v1, v2 = self._extract(r1, a), self._extract(r2, a)
         a.expected, a.actual = v1, v2
         a.raw_response, a.latency_ms = r2, (ms1 + ms2) // 2
         a.passed, a.evidence = compare("eq", v1, v2)
@@ -118,7 +153,8 @@ class Runner:
         from . import quality
         raw, ms = self._ask(a)
         a.raw_response, a.latency_ms = raw, ms
-        domain = a.input["domain"]
+        target = adapter.target_of(a)
+        domain = target.split("://", 1)[-1].split("/", 1)[0]
         known = []
         for claim in ("tls.not_after", "tls.issuer", "dns.a_record"):
             try:
@@ -134,6 +170,13 @@ class Runner:
         return a
 
 
-def run_all(assertions: list[Assertion], transport, cards: AgentCards) -> list[Assertion]:
-    r = Runner(transport, cards)
-    return [r.run(a) for a in assertions]
+def run_all(assertions: list[Assertion], transport, cards: AgentCards, extractor=None,
+            on_result=None) -> list[Assertion]:
+    r = Runner(transport, cards, extractor)
+    r.plan(assertions)
+    out = []
+    for a in assertions:
+        out.append(r.run(a))
+        if on_result:
+            on_result(out[-1])
+    return out

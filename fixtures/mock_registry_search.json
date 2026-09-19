@@ -1,10 +1,28 @@
 [
   {
-    "ansId": "e1b465ae-e117-43a1-9e55-6ba66b059146",
+    "agentId": "e1b465ae-e117-43a1-9e55-6ba66b059146",
+    "providerId": "80",
     "ansName": "ans://v1.0.0.dnsdoc.webmesh.ai",
     "agentHost": "dnsdoc.webmesh.ai",
-    "agentStatus": "ACTIVE",
-    "protocols": ["a2a", "mcp"],
-    "tags": ["dns", "tls", "diagnostics"]
+    "agentDisplayName": "Domain DNS/SSL Doctor",
+    "agentDescription": "Diagnoses a domain's DNS, TLS/SSL, HTTP, and email from live probes.",
+    "agentVersion": "v1.0.0",
+    "lifecycle": {"status": "ACTIVE"},
+    "scores": {"trustScore": 51},
+    "endpoints": [
+      {
+        "agentUrl": "https://dnsdoc.webmesh.ai/a2a",
+        "metaDataUrl": "https://dnsdoc.webmesh.ai/.well-known/agent-card.json",
+        "protocol": "A2A",
+        "transports": ["STREAMABLE-HTTP"],
+        "functions": [
+          {"id": "dns_diagnose", "name": "DNS diagnosis", "tags": ["dns"]},
+          {"id": "tls_diagnose", "name": "TLS diagnosis", "tags": ["tls"]},
+          {"id": "http_check", "name": "HTTP check", "tags": ["http"]},
+          {"id": "email_check", "name": "Email config", "tags": ["email"]},
+          {"id": "email_deliverability", "name": "Email deliverability", "tags": ["email"]}
+        ]
+      }
+    ]
   }
 ]

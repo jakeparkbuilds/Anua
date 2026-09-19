@@ -22,6 +22,18 @@ class Transport(Protocol):
     def send(self, prompt: str) -> tuple[str, int]: ...   # (response_text, latency_ms)
 
 
+class AgentUnavailable(Exception):
+    """The agent refused to serve us at all (payment wall, auth wall). Not a competence
+    verdict: oracle tests are left ungraded; `endpoint.reachable` records the reason."""
+
+
+def _check_gate(r: httpx.Response) -> None:
+    if r.status_code == 402:
+        raise AgentUnavailable(f"HTTP 402 payment required (x402: {r.headers.get('payment-required', '')[:40]}...)")
+    if r.status_code in (401, 403):
+        raise AgentUnavailable(f"HTTP {r.status_code} {r.reason_phrase}: authentication required")
+
+
 def _extract_text(result: Any) -> str:
     """Pull text out of an A2A result (message or task) defensively."""
     if isinstance(result, str):
@@ -67,6 +79,7 @@ class A2ATransport:
         with httpx.Client(timeout=self.timeout) as c:
             r = c.post(self.endpoint, json=body)
         ms = int((time.perf_counter() - t0) * 1000)
+        _check_gate(r)
         r.raise_for_status()
         data = r.json()
         if "error" in data:
@@ -87,6 +100,7 @@ class MCPTransport:
         with httpx.Client(timeout=self.timeout, headers={"Accept": "application/json, text/event-stream"}) as c:
             r = c.post(self.endpoint, json=body)
         ms = int((time.perf_counter() - t0) * 1000)
+        _check_gate(r)
         r.raise_for_status()
         data = r.json()
         if "error" in data:

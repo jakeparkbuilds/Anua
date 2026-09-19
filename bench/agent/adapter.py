@@ -40,11 +40,24 @@ _PROMPTS = {
                "TLS/SSL (is the certificate chain valid and trusted, is it expired, does the "
                "hostname match, expiry date, issuer), HTTP status over HTTPS, and email "
                "configuration (SPF and DMARC presence). Respond in JSON if you can.",
+    "url":     "Analyze the page at {url}. Report everything you observe about it, with concrete "
+               "values (title, meta description, headings, canonical, structured data, robots, "
+               "sitemap, status, redirects). Respond in JSON if you can.",
 }
 
 
+def target_of(a: Assertion) -> str:
+    """The thing the oracle is asked about: a URL if the test has one, else the domain."""
+    return a.input.get("url") or a.input.get("domain") or ""
+
+
 def build_prompt(a: Assertion) -> str:
-    # HUMAN: if the agent wants just a bare domain (common for MCP tools), return a.input["domain"]
+    """Generated tests carry their own prompt (written from the agent's own examples).
+    Hand-written ones use the legacy templates."""
+    if a.prompt:
+        return a.prompt
+    if "url" in a.input:
+        return _PROMPTS["url"].format(**a.input)
     return _PROMPTS["default"].format(**a.input)
 
 
@@ -203,3 +216,56 @@ def https_timed_out(raw):
     http = ev.get("http")
     if not isinstance(http, dict): return False
     return "timed out" in str(http.get("https_error") or "").lower()
+
+
+# ---------------------------------------------------------------------------
+# LLM-assisted extraction: the model READS the agent's answer, it never judges it.
+# Used only when the structured/regex paths above return None (i.e. for agents whose
+# response shape we have never seen). Every extracted value must be backed by a verbatim
+# quote that actually occurs in the response, or it is discarded — no invented values.
+# ---------------------------------------------------------------------------
+_EXTRACT_SYSTEM = """You are a strict parser. You are given an AI agent's raw response and a list of
+claims, each with a key, a description of the value type, and the target it is about.
+For each key, report the value THE AGENT STATED for that target — do NOT compute or guess
+the true value, do NOT infer from silence. If the agent did not state it, return null.
+
+Return STRICT JSON: {"<key>": {"value": <bool|int|string|list|null>, "quote": "<verbatim
+substring of the response that states it, or null>"}}. Types: bool claims -> true/false;
+int claims -> integer; str claims -> the string; list claims -> array of strings;
+date claims -> "YYYY-MM-DD". JSON only, no prose."""
+
+
+class LLMExtractor:
+    def __init__(self, llm, specs: dict):
+        self.llm, self.specs = llm, specs
+        self._cache: dict[tuple[str, str], Any] = {}
+
+    def prime(self, raw: str, claims: list[tuple[str, str]]) -> None:
+        """One model call per distinct response: extract every (claim, target) at once."""
+        todo = [(c, t) for c, t in claims if (hash(raw), f"{c}|{t}") not in self._cache]
+        if not todo:
+            return
+        rows = []
+        for c, t in todo:
+            sp = self.specs.get(c)
+            rows.append({"key": f"{c}|{t}", "claim": c, "target": t,
+                         "type": sp.returns if sp else "str", "meaning": sp.description if sp else c})
+        try:
+            from ..llm import parse_json
+            out = parse_json(self.llm.complete(_EXTRACT_SYSTEM,
+                             f"Claims:\n{json.dumps(rows, indent=1)}\n\nAgent response:\n{raw[:12000]}"), "dict")
+        except Exception:
+            out = {}
+        for c, t in todo:
+            k = f"{c}|{t}"
+            item = out.get(k) if isinstance(out, dict) else None
+            val, quote = (item.get("value"), item.get("quote")) if isinstance(item, dict) else (None, None)
+            if val is not None and not (isinstance(quote, str) and quote and " ".join(quote.split()).lower() in " ".join(raw.split()).lower()):
+                val = None          # ungrounded: the model could not point at where the agent said it
+            self._cache[(hash(raw), k)] = val
+
+    def extract(self, raw: str, claim: str, target: str) -> Optional[Any]:
+        key = (hash(raw), f"{claim}|{target}")
+        if key not in self._cache:
+            self.prime(raw, [(claim, target)])
+        return self._cache.get(key)

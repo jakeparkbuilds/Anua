@@ -28,10 +28,15 @@ transport:
   # MCP tool name to call if transport=mcp. HUMAN: read from the card's tools list.
   mcp_tool: ""
 
+# Which tests run. generated = the LangGraph generator writes tests for THIS agent
+# (default, needs ANTHROPIC_API_KEY). regression = the 26 hand-written DNS/TLS tests
+# only (proves the grader; only fits a DNS/TLS agent). both = union.
+suite: "generated"
+
 generator:
   enabled: true
   model: "claude-sonnet-4-6"
-  max_generated: 8
+  max_generated: 30
 
 report:
   out_dir: "out"

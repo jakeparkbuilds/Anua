@@ -20,12 +20,19 @@ class Severity(str, Enum):
     INFO = "INFO"
 
 
+class Verifiability(str, Enum):
+    VERIFIABLE = "VERIFIABLE"        # maps onto an oracle we have -> tests generated
+    SCHEMA_ONLY = "SCHEMA_ONLY"      # checkable only as contract/reachability/drift
+    UNVERIFIABLE = "UNVERIFIABLE"    # no independent truth exists -> a coverage finding
+
+
 class Assertion(BaseModel):
     """One test. `expected` is filled by the oracle at runtime unless overridden."""
     id: str
     kind: Kind
     claim: str                       # capability under test, e.g. "tls.chain_valid"
-    input: dict[str, Any]            # e.g. {"domain": "expired.badssl.com"}
+    input: dict[str, Any]            # {"domain": "expired.badssl.com"} or {"url": "https://..."}
+    prompt: Optional[str] = None     # what we send the agent; None -> adapter default template
     oracle: Optional[str] = None     # key into oracles.registry.ORACLES
     comparator: str = "eq"           # eq | set_eq | bool | contains | date_close | nonempty
     expected_override: Optional[Any] = None
@@ -55,12 +62,15 @@ class AgentIdentity(BaseModel):
     fingerprint_match: Optional[bool] = None
     identity_cert_uri_san: Optional[str] = None   # TODO(b): validate identity cert
     verified: bool = False
+    # VERIFIED | PENDING (TL entry, no sealed cert yet) | MISMATCH | NOT_FOUND | UNVERIFIED
+    status: str = "UNVERIFIED"
     notes: list[str] = Field(default_factory=list)
 
 
 class AgentCards(BaseModel):
     agent_card: dict[str, Any] = Field(default_factory=dict)
     trust_card: dict[str, Any] = Field(default_factory=dict)
+    registry_entry: dict[str, Any] = Field(default_factory=dict)   # ANS search hit (registration metadata)
     endpoint: Optional[str] = None
     declared_skills: list[str] = Field(default_factory=list)
     declared_protocols: list[str] = Field(default_factory=list)
@@ -74,6 +84,28 @@ class QualityScores(BaseModel):
     method: str = "classical"
 
 
+class CapabilityClaim(BaseModel):
+    """One discrete thing the agent says it can do, as extracted from its self-descriptions."""
+    claim_text: str
+    source: str = "description"      # skill | description | trust_card | registry
+    verifiability: Verifiability = Verifiability.UNVERIFIABLE
+    oracle_key: Optional[str] = None
+    reason: str = ""
+
+
+class CoverageReport(BaseModel):
+    """How much of what the agent declares can be objectively checked. A first-class result:
+    an agent declaring capabilities nobody can verify is itself a finding."""
+    claims_found: int = 0
+    verifiable: int = 0
+    schema_only: int = 0
+    unverifiable: int = 0
+    claims: list[CapabilityClaim] = Field(default_factory=list)
+    coverage_ratio: float = 0.0      # verifiable / claims_found
+    tests_generated: int = 0
+    notes: list[str] = Field(default_factory=list)
+
+
 class Report(BaseModel):
     agent: str
     target_host: str
@@ -83,6 +115,8 @@ class Report(BaseModel):
     cards: AgentCards
     assertions: list[Assertion]
     quality: QualityScores
+    coverage: Optional[CoverageReport] = None
+    suite: str = "regression"        # generated | regression | both
     summary: dict[str, Any] = Field(default_factory=dict)
     behavior_score: int = 0
     failures: list[dict[str, Any]] = Field(default_factory=list)
