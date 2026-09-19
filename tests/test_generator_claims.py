@@ -117,3 +117,25 @@ def test_generate_without_key_is_loud(monkeypatch):
     monkeypatch.setattr("bench.llm.load_dotenv", lambda *a, **k: None)
     with pytest.raises(RuntimeError, match="ANTHROPIC_API_KEY"):
         generate(AgentCards(agent_card=CARD), [], "fake", 30)
+
+
+def test_subjective_classification_is_unverifiable_even_with_a_proxy_oracle():
+    """"Detects whether a site is showing a parking page" was routed to web.title and
+    produced a HIGH failure against example.com, which is not a parking page. A
+    classification with no ground truth is UNVERIFIABLE whatever the model proposes."""
+    llm = FakeLLM(
+        parse=[{"claim_text": "Detects whether a site is showing a parking page", "source": "skill"},
+               {"claim_text": "Reports the page title", "source": "skill"}],
+        route=[{"claim_text": "Detects whether a site is showing a parking page",
+                "oracle_keys": ["web.title", "web.text_chars"], "kind": "oracle", "about": "capability"},
+               {"claim_text": "Reports the page title", "oracle_keys": ["web.title"], "kind": "oracle",
+                "about": "capability"}],
+        gen=[])
+    _, cov, _ = generate(AgentCards(agent_card=CARD), [], "fake", 30, llm=llm)
+    by = {c.claim_text: c for c in cov.claims}
+    parked = by["Detects whether a site is showing a parking page"]
+    assert parked.verifiability is Verifiability.UNVERIFIABLE
+    assert parked.oracle_key is None
+    assert "subjective classification" in parked.reason and "parking page" in parked.reason
+    assert by["Reports the page title"].verifiability is Verifiability.VERIFIABLE   # the real fact still is
+    assert cov.unverifiable == 1 and cov.verifiable == 1

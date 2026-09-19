@@ -17,3 +17,12 @@ def test_set_overlap():
 def test_date_close():
     assert compare("date_close", "2027-01-01", "2027-01-02T00:00:00Z")[0]
     assert not compare("date_close", "2027-01-01", "2027-03-01")[0]
+
+
+def test_set_comparators_treat_fqdn_trailing_dot_as_the_same_name():
+    # dnsdoc answered ['dns1.p08.nsone.net.', ...]; the RDAP oracle says ['dns1.p08.nsone.net', ...].
+    # Same nameservers, DNS notation. This was a HIGH failure the agent never made.
+    ok, ev = compare("set_overlap", ["dns1.p08.nsone.net", "ns-520.awsdns-01.net"], ["DNS1.p08.nsone.net.", "other."])
+    assert ok, ev
+    assert compare("set_eq", ["ns3.cloudflare.com", "ns4.cloudflare.com"], ["ns4.cloudflare.com.", "NS3.cloudflare.com."])[0]
+    assert not compare("set_overlap", ["ns1.a.net"], ["ns1.b.net."])[0]

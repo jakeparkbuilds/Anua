@@ -41,6 +41,14 @@ _SELF_WORDS = re.compile(r"\b(exposes?|publishes?|serves?|hosts?|listens?|presen
                          r"is (publicly )?(accessible|reachable|available)|endpoint at|available at|"
                          r"logs identity|transparency log|trust card|identity certificate|"
                          r"supports (dnssec|dane|tlsa|spiffe|mutual ?tls))\b", re.I)
+# Claims that are a subjective CLASSIFICATION of a page, not a fact about it. "Is this a
+# parking page" has no ground truth an oracle can compute: a page with a title and no
+# body text may be parked, a stub, or example.com. The router once mapped it to
+# web.title and graded the agent HIGH-failed on example.com for saying "not parked".
+# Deterministic: a claim matching this is UNVERIFIABLE whatever keys the model proposes.
+_SUBJECTIVE_CLASSIFICATION = re.compile(
+    r"\b(park(ed|ing)(\s+page|\s+domain)?|placeholder (page|site)|under construction|"
+    r"coming soon|(looks|appears) (legitimate|suspicious|abandoned)|abandoned (site|domain))\b", re.I)
 # Oracles whose TRUE value is the bad news. An agent never claims its own cert is expired.
 _NEGATIVE_SENSE = frozenset({"tls.expired", "web.robots_disallow_all"})
 # A self-claim asserts a thing is TRUE or PRESENT. For an int or a date there is no
@@ -106,8 +114,10 @@ Rules: only use keys that appear in the catalog, exactly as written. Use "schema
 about protocols, message formats, auth, payment or signatures (checkable by contract, not by
 an oracle). Use "none" with a reason when the claim is subjective, a score the agent invents,
 or depends on data nobody can independently compute (press coverage, "what breaks",
-recommendations, rewriting text). Be strict: a claim about recommendations is NOT covered by
-an oracle that measures the underlying fact.
+recommendations, rewriting text), or is a subjective classification of a page ("is this a
+parking page", "does it look abandoned"). Be strict: a claim about recommendations is NOT
+covered by an oracle that measures the underlying fact, and a classification is NOT covered
+by an oracle that measures one signal it might be based on.
 Return STRICT JSON list. JSON only."""
 
 _GEN_SYS = """You design benchmark tests for an AI agent. Each test asks the agent about one
@@ -248,7 +258,15 @@ def build_graph(llm: LLM):
             else:
                 c.about = "capability"
 
-            if keys:                                                  # deterministic: key MUST exist
+            subjective = _SUBJECTIVE_CLASSIFICATION.search(c.claim_text)
+            if subjective:
+                # A proxy oracle here is worse than none: web.title says nothing about
+                # whether a page is parked, and grading against it manufactures failures.
+                c.verifiability, c.oracle_key = Verifiability.UNVERIFIABLE, None
+                c.reason = (f"'{subjective.group(0)}' is a subjective classification, not a fact: "
+                            "no oracle computes it and any single signal (title, text length) "
+                            "is only a proxy")
+            elif keys:                                                # deterministic: key MUST exist
                 c.verifiability, c.oracle_key = Verifiability.VERIFIABLE, ",".join(keys)
                 c.reason = r.get("reason", "") or f"oracle {keys[0]}"
             elif kind == "schema" or _SCHEMA_WORDS.search(c.claim_text):

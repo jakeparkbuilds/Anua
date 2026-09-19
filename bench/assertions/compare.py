@@ -62,6 +62,13 @@ def _num(v: Any) -> Any:
     return UNKNOWN
 
 
+def _name(v: Any) -> str:
+    """Canonical form of a hostname-like set member. A trailing dot is DNS FQDN notation,
+    not a different name: an agent answering ['ns1.example.net.'] against an oracle that
+    says ['ns1.example.net'] was being scored zero overlap, a HIGH failure it never made."""
+    return str(v).strip().rstrip(".").lower()
+
+
 def _eq(expected: Any, actual: Any) -> bool:
     """Equality that tolerates representation differences but not type confusion."""
     if expected == actual:
@@ -88,10 +95,10 @@ def compare(comparator: str, expected: Any, actual: Any) -> tuple[bool, str]:
     if comparator == "eq":
         return _eq(expected, actual), f"expected {expected!r}, agent said {actual!r}"
     if comparator == "set_eq":
-        e, a = set(map(str, expected or [])), set(map(str, actual or []))
+        e, a = set(map(_name, expected or [])), set(map(_name, actual or []))
         return e == a, f"expected {sorted(e)}, agent said {sorted(a)}"
     if comparator == "set_overlap":
-        e, a = set(map(str, expected or [])), set(map(str, actual or []))
+        e, a = set(map(_name, expected or [])), set(map(_name, actual or []))
         ok = bool(e & a) if e else (not a)
         return ok, f"overlap {sorted(e & a)} of expected {sorted(e)} / agent {sorted(a)}"
     if comparator == "contains":
