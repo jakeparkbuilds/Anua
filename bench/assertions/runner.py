@@ -54,6 +54,13 @@ class Runner:
         raw, ms = self._ask(a)
         a.raw_response, a.latency_ms = raw, ms
         a.actual = adapter.extract(raw, a.claim)
+
+        if a.claim == "http.https_ok" and adapter.https_timed_out(raw):
+            a.passed = None
+            a.score = 0.0
+            a.evidence = f"[{a.oracle}] NO VERDICT — agent HTTPS probe timed out"
+            return a
+
         a.passed, a.evidence = compare(a.comparator, a.expected, a.actual)
         a.score = 100.0 if a.passed else 0.0
         a.evidence = f"[{a.oracle}] {a.evidence}"

@@ -194,3 +194,12 @@ def extract(raw, claim):
             if v is not None:
                 return v
     return _regex_extract(raw, claim)
+
+def https_timed_out(raw):
+    data = _try_json(raw)
+    if not isinstance(data, dict): return False
+    ev = data.get("evidence")
+    if not isinstance(ev, dict): return False
+    http = ev.get("http")
+    if not isinstance(http, dict): return False
+    return "timed out" in str(http.get("https_error") or "").lower()
