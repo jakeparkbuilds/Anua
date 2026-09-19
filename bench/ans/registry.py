@@ -60,9 +60,7 @@ class Registry:
 
     def find_by_host(self, host: str) -> Optional[dict[str, Any]]:
         for a in self.search(host, limit=20):
-            h = _first(a, "agentHost", "host", "domain", "fqdn", default="")
-            name = _first(a, "ansName", "name", default="")
-            if host in str(h) or host in str(name):
+            if str(_first(a, "agentHost", "host", default="")).lower() == host.lower():
                 return a
         return None
 
@@ -75,24 +73,19 @@ class Registry:
         except httpx.HTTPError as e:
             return None
 
-    @staticmethod
-    def tl_server_fingerprint(entry: dict[str, Any]) -> Optional[str]:
-        """agent-trust-discovery README: prod TL carries validServerCerts[] (set) and
-        agent-snapshot uses the primary serverCert.fingerprint."""
-        fp = _first(entry, "serverCert.fingerprint", "serverCertificate.fingerprint",
-                    "certificates.server.fingerprint")
-        if fp:
-            return _norm_fp(fp)
-        certs = _first(entry, "validServerCerts", "serverCerts", default=[])
-        if isinstance(certs, list) and certs:
-            fp = _first(certs[0], "fingerprint", "sha256", "fingerprintSha256")
-            return _norm_fp(fp) if fp else None
-        return None
 
     @staticmethod
-    def tl_ans_name(entry: dict[str, Any]) -> Optional[str]:
-        return _first(entry, "ansName", "name", "agent.ansName")
+    def tl_server_fingerprint(entry):
+        att = _first(entry, "payload.producer.event.attestations", default={}) or {}
+        fp = _first(att, "serverCert.fingerprint")
+        if not fp:
+            certs = att.get("validServerCerts") or []
+            fp = certs[0].get("fingerprint") if certs else None
+        return _norm_fp(fp) if fp else None
 
+    @staticmethod
+    def tl_ans_name(entry):
+        return _first(entry, "payload.producer.event.ansName", "ansName")
 
 def _norm_fp(fp: str) -> str:
     return fp.replace(":", "").replace(" ", "").lower().removeprefix("sha256")
