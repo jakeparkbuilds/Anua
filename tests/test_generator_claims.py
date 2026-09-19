@@ -18,7 +18,7 @@ class FakeLLM:
     def complete(self, system: str, human: str) -> str:
         if system.startswith("You extract capability claims"):
             self.calls.append("parse"); return json.dumps(self.parse or [])
-        if system.startswith("You match capability claims"):
+        if system.startswith("You match an AI agent's claims"):
             self.calls.append("route"); return json.dumps(self.route or [])
         if system.startswith("You design benchmark tests"):
             self.calls.append("gen"); return json.dumps(self.gen or [])

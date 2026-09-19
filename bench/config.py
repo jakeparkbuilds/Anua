@@ -34,7 +34,7 @@ class GeneratorCfg(BaseModel):
 
 class ReportCfg(BaseModel):
     out_dir: str = "out"
-    weights: dict[str, float] = Field(default_factory=lambda: {"oracle": .7, "schema": .2, "quality": .1})
+    weights: dict[str, float] = Field(default_factory=lambda: {"oracle": .7, "selfclaim": .25, "schema": .2, "quality": .1})
 
 
 class EmitCfg(BaseModel):

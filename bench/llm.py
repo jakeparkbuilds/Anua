@@ -36,15 +36,21 @@ def have_key() -> bool:
 
 
 class AnthropicLLM:
-    def __init__(self, model: str, temperature: float = 0.2, max_tokens: int = 4000):
+    # 4000 was too small: generate_tests writes long JSON and the reply was being cut
+    # mid-word, so the array never closed and nothing parsed. Callers also batch their
+    # work into several smaller calls rather than one big one.
+    def __init__(self, model: str, temperature: float = 0.2, max_tokens: int = 8000):
         from langchain_anthropic import ChatAnthropic
         self._llm = ChatAnthropic(model=model, temperature=temperature, max_tokens=max_tokens)
         self.model = model
         self.calls = 0
+        self.truncated = 0
 
     def complete(self, system: str, human: str) -> str:
         self.calls += 1
         msg = self._llm.invoke([("system", system), ("human", human)])
+        if (msg.response_metadata or {}).get("stop_reason") == "max_tokens":
+            self.truncated += 1
         c = msg.content
         return c if isinstance(c, str) else "".join(getattr(b, "text", "") or (b.get("text", "") if isinstance(b, dict) else "") for b in c)
 
@@ -58,10 +64,44 @@ def make_llm(model: str) -> LLM:
     return AnthropicLLM(model)
 
 
-def parse_json(text: str, want: str = "any") -> Any:
-    """Pull the first JSON object/array out of a model reply (tolerates fences/prose)."""
+def strip_fences(text: str) -> str:
+    """Remove markdown code fences. Handles the UNTERMINATED case too: a truncated reply
+    opens ```json and never closes it, and the old anchored regex left the opener in."""
     t = text.strip()
-    t = re.sub(r"^```(?:json)?\s*|\s*```$", "", t, flags=re.S)
+    t = re.sub(r"^\s*```[a-zA-Z0-9_-]*[ \t]*\r?\n?", "", t)   # opening fence, closed or not
+    t = re.sub(r"\r?\n?[ \t]*```\s*$", "", t)                  # closing fence, if it arrived
+    return t.strip()
+
+
+def salvage_list(text: str) -> list:
+    """Recover the complete objects from a TRUNCATED JSON array.
+
+    A reply cut off at max_tokens ends mid-object, so the array never closes and strict
+    parsing yields nothing at all — nine good tests thrown away because the tenth was
+    half-written. Walk the array and keep every element that decoded cleanly."""
+    t = strip_fences(text)
+    i = t.find("[")
+    if i < 0:
+        return []
+    dec, out, j = json.JSONDecoder(), [], i + 1
+    while j < len(t):
+        while j < len(t) and t[j] in ", \t\r\n":
+            j += 1
+        if j >= len(t) or t[j] == "]":
+            break
+        try:
+            obj, end = dec.raw_decode(t, j)
+        except json.JSONDecodeError:
+            break                      # the truncated tail — everything before it is good
+        out.append(obj)
+        j = end
+    return out
+
+
+def parse_json(text: str, want: str = "any") -> Any:
+    """Pull the first JSON object/array out of a model reply (tolerates fences/prose,
+    and recovers the complete items from a reply that was cut off mid-write)."""
+    t = strip_fences(text)
     try:
         return json.loads(t)
     except json.JSONDecodeError:
@@ -75,4 +115,8 @@ def parse_json(text: str, want: str = "any") -> Any:
             return obj
         except json.JSONDecodeError:
             continue
+    if want == "list":
+        rescued = salvage_list(t)
+        if rescued:
+            return rescued
     raise ValueError(f"no JSON found in model reply: {text[:120]!r}")

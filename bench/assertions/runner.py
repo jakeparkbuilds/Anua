@@ -50,6 +50,8 @@ class Runner:
         try:
             if a.kind == Kind.ORACLE:
                 return self._oracle(a)
+            if a.kind == Kind.SELFCLAIM:
+                return self._selfclaim(a)
             if a.kind == Kind.SCHEMA:
                 return self._schema(a)
             if a.kind == Kind.CONSISTENCY:
@@ -82,6 +84,30 @@ class Runner:
         return a
 
     # ----------------------------------------------------------------------
+    def _selfclaim(self, a: Assertion) -> Assertion:
+        """A claim about the agent's OWN infrastructure — "exposes an endpoint at X",
+        "publishes a trust card at Y", "supports DNSSEC".
+
+        We go and look. The agent is never called, and deliberately so: asking a
+        domain-takedown risk scorer about the TLS state of its own endpoint measures
+        nothing except whether it happens to also be a TLS tool, and its puzzlement
+        was being recorded as nine HIGH-severity competence failures.
+
+        Note the direction is the reverse of a capability test. Here `expected` is what
+        the agent CLAIMS about itself and `actual` is what we measured to be TRUE."""
+        target = adapter.target_of(a)
+        a.actual = compute(a.oracle, target)
+        a.expected = a.expected_override
+        if a.comparator == "nonempty":
+            a.passed, detail = compare("nonempty", None, a.actual)
+        else:
+            a.passed, detail = compare(a.comparator, a.expected, a.actual)
+        a.score = 100.0 if a.passed else 0.0
+        claimed = "present/non-empty" if a.comparator == "nonempty" else repr(a.expected)
+        a.evidence = (f"[{a.oracle}] SELF-CLAIM (agent not called): card claims {claimed} for "
+                      f"{target}; we measured {a.actual!r} — {detail}")
+        return a
+
     def _oracle(self, a: Assertion) -> Assertion:
         target = adapter.target_of(a)
         a.expected = a.expected_override if a.expected_override is not None else compute(a.oracle, target)

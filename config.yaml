@@ -42,9 +42,12 @@ report:
   out_dir: "out"
   # Weights for the behavior score. Quality NEVER affects pass/fail — only this blend.
   weights:
-    oracle: 0.70
+    oracle: 0.70          # capability: we asked the agent, an oracle graded its answer
+    selfclaim: 0.25       # the agent's claims about its OWN endpoint/DNS/cards, checked directly
     schema: 0.20
     quality: 0.10
+  # Normalised over whichever pools produced a graded result. If the capability pool is
+  # empty there is no behavior score at all — see score_status: INSUFFICIENT_COVERAGE.
 
 emit:
   enabled: false

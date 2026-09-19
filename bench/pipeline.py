@@ -76,17 +76,22 @@ def run(cfg: Config, generate_tests: bool | None = None, log=print, suite: str |
     if suite in ("generated", "both"):
         log(f"[3/6] LangGraph: read the agent's cards, extract claims, write tests ({cfg.generator.model})")
         stage("generate", "LLM reads the cards and writes oracle-backed tests")
-        gen, coverage, gnotes = generate(cards, assertions, cfg.generator.model, cfg.generator.max_generated, llm=llm)
+        gen, coverage, gnotes = generate(cards, assertions, cfg.generator.model, cfg.generator.max_generated,
+                                         llm=llm, host=host)
         notes.extend(gnotes)
         for n in gnotes:
             log(f"      note: {n}")
         log(f"      claims={coverage.claims_found} verifiable={coverage.verifiable} "
             f"schema_only={coverage.schema_only} unverifiable={coverage.unverifiable} "
-            f"coverage={coverage.coverage_ratio:.0%}  +{len(gen)} generated tests")
+            f"coverage={coverage.coverage_ratio:.0%}  ({coverage.self_claims} self / "
+            f"{coverage.capability_claims} capability)")
+        log(f"      +{coverage.capability_tests} capability tests (agent is asked) "
+            f"+{coverage.selfclaim_tests} self-claim checks (agent is NOT asked)")
         for c in coverage.claims:
-            log(f"      {c.verifiability.value:<13} {c.claim_text[:70]:<72} {c.oracle_key or c.reason[:50]}")
+            log(f"      {c.about[:4]:<4} {c.verifiability.value:<13} {c.claim_text[:66]:<68} {c.oracle_key or c.reason[:46]}")
         for a in gen:
-            log(f"      + {a.id:<40} {a.claim:<28} {adapter.target_of(a)}")
+            log(f"      + [{'SELF' if a.kind.value == 'selfclaim' else 'CAP '}] {a.id:<40} "
+                f"{a.claim:<28} {adapter.target_of(a)}")
         assertions.extend(gen)
         if suite == "generated":
             assertions.extend(generic_assertions(gen))
@@ -121,7 +126,11 @@ def run(cfg: Config, generate_tests: bool | None = None, log=print, suite: str |
     path = out_dir / f"{host.replace('.', '_')}_{suite}_{stamp}.json"
     path.write_text(report.model_dump_json(indent=2))
     (out_dir / "latest.json").write_text(report.model_dump_json(indent=2))
-    log(f"      behavior_score={report.behavior_score}  {report.explanation}")
+    if report.score_status == "OK":
+        log(f"      behavior_score={report.behavior_score}  {report.explanation}")
+    else:
+        log(f"      behavior_score=INSUFFICIENT_COVERAGE  {report.score_basis}")
+        log(f"      {report.explanation}")
     log(f"      wrote {path}")
 
     if cfg.emit.enabled and cfg.emit.import_url:

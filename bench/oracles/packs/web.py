@@ -149,6 +149,24 @@ def fetchable(target: str) -> bool:
         return False                               # cert failure: page is NOT fetchable
 
 
+# A protocol endpoint is not a document. dnsdoc's MCP endpoint answers our HTML GET with
+# 406 Not Acceptable because streamable-HTTP wants Accept: application/json, text/event-stream
+# — it is plainly there and plainly serving. Grading "publishes an MCP endpoint" with
+# `fetchable` called that a broken claim. 404 and 5xx still mean nothing is there.
+_SERVING_BUT_NOT_FOR_US = frozenset({401, 402, 403, 405, 406, 415, 422, 429})
+
+
+def endpoint_live(target: str) -> bool:
+    """True iff SOMETHING is serving at this URL — including an endpoint that rejects the
+    shape of our request. Use this for a claim that an endpoint exists; use `fetchable`
+    when the claim is that a document can actually be retrieved."""
+    try:
+        st = _page(target).status
+    except httpx.HTTPError:
+        return False                               # cert failure: nothing usable is there
+    return st < 400 or st in _SERVING_BUT_NOT_FOR_US
+
+
 def status(target: str) -> int:                 return _page_or_unavailable(target).status
 def redirect_count(target: str) -> int:         return _page_or_unavailable(target).redirects
 def final_url(target: str) -> str:              return _page_or_unavailable(target).final_url
@@ -217,6 +235,11 @@ _BARE = ("https://example.com/",)     # has title+h1+viewport; NO meta descripti
 SPECS = {s.key: s for s in [
     spec("web.fetchable", fetchable, "True iff GET of the URL (following redirects, verifying TLS) ends in a status < 400",
          input="url", negatives=_NOPAGE + ("https://expired.badssl.com/",), pack=P),
+    spec("web.endpoint_live", endpoint_live,
+         "True iff something is serving at this URL, including a protocol endpoint that "
+         "rejects our request shape (405/406/415) or demands payment or auth (401/402/403). "
+         "404, 5xx and TLS failures are False. Use for 'exposes an endpoint at X' claims.",
+         input="url", negatives=_NOPAGE, pack=P),
     spec("web.status", status, "Final HTTP status code after following redirects", input="url",
          comparator="eq", returns="int", negatives=_NOPAGE, pack=P),
     spec("web.redirect_count", redirect_count, "Number of redirects followed to reach the final URL", input="url",

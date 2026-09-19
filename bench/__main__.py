@@ -21,12 +21,19 @@ def cmd_run(args):
     suite = args.suite or ("regression" if args.no_gen else None)
     from .pipeline import run
     r = run(cfg, suite=suite)
-    out = {"agent": r.agent, "suite": r.suite, "identity": r.identity.status, "behavior_score": r.behavior_score,
+    out = {"agent": r.agent, "suite": r.suite, "identity": r.identity.status,
+           "behavior_score": r.behavior_score if r.score_status == "OK" else "INSUFFICIENT_COVERAGE",
+           "score_basis": r.score_basis,
+           "capability_graded": r.summary["capability_assertions_graded"],
+           "selfclaims_graded": r.summary["selfclaim_assertions_graded"],
            "failures": len(r.failures), "high": r.summary["high_severity_failures"]}
     if r.coverage:
         out["coverage"] = {"claims_found": r.coverage.claims_found, "verifiable": r.coverage.verifiable,
                            "schema_only": r.coverage.schema_only, "unverifiable": r.coverage.unverifiable,
-                           "coverage_ratio": r.coverage.coverage_ratio, "tests_generated": r.coverage.tests_generated}
+                           "coverage_ratio": r.coverage.coverage_ratio,
+                           "self_claims": r.coverage.self_claims, "capability_claims": r.coverage.capability_claims,
+                           "capability_tests": r.coverage.capability_tests,
+                           "selfclaim_tests": r.coverage.selfclaim_tests}
     print(json.dumps(out, indent=2))
     return 0
 

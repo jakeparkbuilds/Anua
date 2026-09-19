@@ -546,8 +546,10 @@ Be honest about this in the demo. Judges penalize overclaiming, not simulation.
 | Claim-drift detection | ✅ | ✅ **fixed** — real three-way diff; fires on the mock, clean on 3 live agents |
 | Identity: 4 states (VERIFIED/PENDING/MISMATCH/NOT_FOUND) | ✅ | ✅ VERIFIED and NOT_FOUND seen live; MISMATCH still never observed |
 | Paywalled/auth-walled agents | ✅ | ✅ **live** — `seo.webmesh.ai` returns HTTP 402 (x402). Left **ungraded**, never scored as incompetence |
-| **Generator: writes tests for an arbitrary agent** | ✅ | ⚠️ **proven offline** against a FakeLLM; the live LLM call is still unrun (no API key on this machine) |
-| Coverage report (VERIFIABLE/SCHEMA_ONLY/UNVERIFIABLE) | ✅ | ⚠️ same — computed correctly offline, not yet against a real model |
+| **Generator: writes tests for an arbitrary agent** | ✅ | ✅ **live** — 29 tests for `dnsdoc` (score 80), 28 for `seo`, from the cards alone |
+| Self-claim vs capability split | ✅ | ✅ **live** — `impact` went from 26/100 with 9 false HIGH failures to 0 failures |
+| Coverage report (VERIFIABLE/SCHEMA_ONLY/UNVERIFIABLE) | ✅ | ✅ **live** on 3 agents: 65% / 61% / 22% |
+| INSUFFICIENT_COVERAGE instead of a meaningless number | ✅ | ✅ **live** — fires on `impact` (nothing checkable) and `seo` (paywalled) |
 | MCP transport | ⚠️ | ❌ never hit a real agent, and known wrong (see §11) |
 | Benchmark server + web UI | ❌ | not started (phase 2/3) |
 | Trust Index emit | ✅ | ❌ payload shape is still a guess |
@@ -704,6 +706,28 @@ The LLM is never a judge and never the last word:
 A hallucinated oracle key cannot become a passing test. It becomes an UNVERIFIABLE claim
 with the invented key named in the reason.
 
+### Two kinds of claim, and never confuse them
+
+An agent's self-description mixes two things that need completely different treatment:
+
+| | SELF claim | CAPABILITY claim |
+|---|---|---|
+| example | "exposes an A2A endpoint at `https://x`", "publishes a trust card at `Y`", "supports DNSSEC" | "given a domain, reports whether its certificate is expired" |
+| about | the agent's own infrastructure | work the agent does on an input we supply |
+| how we check it | probe it ourselves with an oracle | call the agent, grade its answer against an oracle |
+| is the agent called? | **never** | always |
+| `expected` / `actual` | what the card CLAIMS / what we MEASURED | what the oracle computed / what the agent SAID |
+
+Conflating them is not a cosmetic bug. The first version of this asked
+`impact.webmesh.ai` — a domain-takedown risk scorer — for the TLS status of
+`expired.badssl.com`, because *impact's own card* claims it presents an ANS identity
+certificate. It scored **26/100 with nine HIGH-severity failures**, every one of them
+measuring nothing but our own category error. After the split it has **zero** failures.
+
+`Kind.SELFCLAIM` assertions never touch the transport, and `validate_tests` rejects any
+capability test aimed at the agent's own host. A self-claim may only probe infrastructure
+the agent actually owns — its host, its parent zone, or a full URL it publishes itself.
+
 ### Coverage is a result, not a diagnostic
 
 Every claim lands in exactly one bucket:
@@ -718,6 +742,26 @@ it is a finding about the agent. `dnsdoc` declaring a single opaque skill called
 is exactly the self-declaration problem this project exists to expose: an agent can claim
 anything, and until somebody computes the answer independently, nothing in the registry
 distinguishes a good one from a confident one.
+
+### When there is no score
+
+`behavior_score` is a *behaviour* score. If not one capability assertion was graded, a
+number would be built entirely out of the agent's endpoint being up and its prose being
+readable — which is the self-declaration problem again, one level up. So the report says
+`INSUFFICIENT_COVERAGE`, `behavior_score` is `null`, and `score_basis` names the cause:
+
+```
+impact.webmesh.ai  INSUFFICIENT_COVERAGE
+  none of the 15 capability claims this agent makes maps onto an oracle — 12 of 23
+  declared claims are unverifiable by anyone. Its 4 self-claims about its own
+  infrastructure were checked directly and 4 held.
+
+seo.webmesh.ai     INSUFFICIENT_COVERAGE
+  the agent refused to serve us (HTTP 402 payment required), so none of the 29
+  capability tests written for it could be graded. Its 3 self-claims held.
+```
+
+Those two lines say more about an agent than any number would, and they say it honestly.
 
 ### `--suite regression`
 
