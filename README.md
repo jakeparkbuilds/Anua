@@ -28,6 +28,7 @@ VTHacks 14 — GoDaddy "Best Use of ANS" track.
 15. [Team split suggestion](#15-team-split-suggestion)
 16. [Troubleshooting](#16-troubleshooting)
 17. [Suites: generated vs regression](#17-suites-generated-vs-regression)
+18. [The server: benchmark as a service, and as an ANS participant](#18-the-server-benchmark-as-a-service-and-as-an-ans-participant)
 
 ---
 
@@ -146,6 +147,9 @@ cat out/latest.json
 echo "ANTHROPIC_API_KEY=sk-..." >> .env
 python -m bench run --live                          # dnsdoc
 python -m bench run --live --host impact.webmesh.ai # an agent nobody hand-wrote tests for
+
+# 6. the same thing as a service + web page + A2A endpoint (see §18)
+make serve                                          # http://localhost:8000
 ```
 
 Steps 3 and 4 use `--suite regression` on purpose: they need no API key, so they always work
@@ -174,7 +178,8 @@ If `selftest` fails on `cloudflare.com`, your Python has no CA trust store — s
 ```
 ans-bench/
 ├── README.md                    ← you are here
-├── Makefile                     make selftest / run / run-live / probe / test
+├── Makefile                     make selftest / run / run-live / probe / test / serve
+├── Procfile                     Railway/Heroku process line: uvicorn on $PORT
 ├── requirements.txt
 ├── config.yaml                  ★ ALL tunable settings. Grep "HUMAN" for unconfirmed values.
 ├── .env.example                 copy → .env, add ANTHROPIC_API_KEY (only needed for step 3)
@@ -190,6 +195,17 @@ ans-bench/
 │   │                              Assertion, Kind, Severity, AgentIdentity,
 │   │                              AgentCards, QualityScores, Report
 │   ├── pipeline.py              ★ The 6-stage orchestrator. Read this second.
+│   │                              on_event() hooks are what the server streams to the page.
+│   │
+│   ├── server/                  ─── THE SERVICE (§18) ───
+│   │   ├── app.py               FastAPI: / (page), /api/benchmark, /api/stream (SSE),
+│   │   │                        /a2a, /.well-known/agent-card.json, trust card, /health
+│   │   ├── runs.py              ★ Run store: in-memory cache by (host, suite), in-flight
+│   │   │                        joins, disk warm-up from out/, pipeline events → 6 steps
+│   │   ├── a2a.py               A2A JSON-RPC handler + the text summary it answers with
+│   │   ├── cards.py             OUR OWN agent card + trust card, written to be read by
+│   │   │                        our own pipeline (every sentence is a checkable claim)
+│   │   └── static/index.html    the page (phase 2C)
 │   │
 │   ├── ans/                     ─── THE ANS LAYER ───
 │   │   ├── registry.py          Search API + Transparency Log clients.
@@ -535,7 +551,7 @@ Be honest about this in the demo. Judges penalize overclaiming, not simulation.
 | Oracles — network pack (13) | ✅ | ✅ ran live; `selftest` 9/9; verdict/unavailable boundary unit-tested |
 | Oracles — web pack (23) | ✅ | ✅ smoke-tested live against `example.com` and `seo.webmesh.ai` |
 | Oracles — whois/RDAP pack (5) | ✅ | ✅ live against `badssl.com` (created 2015-04-07, MarkMonitor) |
-| Assertions + comparators + scoring | ✅ | ✅ 57 unit tests pass |
+| Assertions + comparators + scoring | ✅ | ✅ 87 unit tests pass (comparators canonicalise FQDN trailing dots — a false HIGH found on the 2A run) |
 | Report + JSON output | ✅ | ✅ |
 | Mock pipeline end-to-end | ✅ | ✅ runs clean, finds 2 HIGH failures |
 | **ANS registry search** | ✅ | ✅ **live** — discovers `dnsdoc` by host at `api.godaddy.com` |
@@ -549,9 +565,12 @@ Be honest about this in the demo. Judges penalize overclaiming, not simulation.
 | **Generator: writes tests for an arbitrary agent** | ✅ | ✅ **live** — 29 tests for `dnsdoc` (score 80), 28 for `seo`, from the cards alone |
 | Self-claim vs capability split | ✅ | ✅ **live** — `impact` went from 26/100 with 9 false HIGH failures to 0 failures |
 | Coverage report (VERIFIABLE/SCHEMA_ONLY/UNVERIFIABLE) | ✅ | ✅ **live** on 3 agents: 65% / 61% / 22% |
+| Subjective classifications are UNVERIFIABLE by backstop | ✅ | ✅ **live** — "detects a parking page" no longer maps to `web.title`; dnsdoc's DNSSEC failures survive the change |
 | INSUFFICIENT_COVERAGE instead of a meaningless number | ✅ | ✅ **live** — fires on `impact` (nothing checkable) and `seo` (paywalled) |
 | MCP transport | ⚠️ | ❌ never hit a real agent, and known wrong (see §11) |
-| Benchmark server + web UI | ❌ | not started (phase 2/3) |
+| **Benchmark server** (`make serve`) | ✅ | ✅ **live** — dnsdoc through `/api/benchmark`: 83, then `"cached": true` in 10 ms; SSE steps tick on a forced run |
+| **A2A endpoint — we are a participant** | ✅ | ✅ **live** — `POST /a2a` with our own transport's envelope returns a text summary; own cards pass our own drift check |
+| Web page | ❌ | phase 2C |
 | Trust Index emit | ✅ | ❌ payload shape is still a guess |
 | Identity-cert / Merkle-proof validation | ❌ | stubbed — but the `x5c` chain and proof are already in responses we fetch |
 | Go `port.Signal` impls | ❌ | not started |
@@ -786,3 +805,134 @@ every oracle assertion `passed=None` (ungraded, excluded from the pass rate) and
 `endpoint.reachable`, with the refusal reason as evidence. The same path covers 401/403.
 The card is still read and coverage is still reported — you learn what the agent claims and
 how much of it is checkable, you just do not learn whether it is telling the truth.
+
+---
+
+## 18. The server: benchmark as a service, and as an ANS participant
+
+`make serve` runs one FastAPI process (`bench/server/app.py`) on `$PORT` (default 8000).
+Same pipeline, same oracles, same report — plus a page, a streaming view of the run, and
+an A2A endpoint of our own, so `anuabot.vip` is a registered agent other agents can call.
+
+```
+GET  /                                the page (phase 2C)
+POST /api/benchmark                   {"agent": "<host | ans://name>", "suite": "generated|regression|both",
+                                       "force": false}                      -> full Report JSON
+GET  /api/benchmark/{host}            same, for shareable links   (?suite=generated&force=false)
+GET  /api/stream/{host}               Server-Sent Events: one `step` event per pipeline step, then `done`
+POST /a2a                             A2A JSON-RPC, method message/send — one turn, text reply
+GET  /.well-known/agent-card.json     our own agent card  (name "Anua Benchmarker", skill benchmark_agent)
+GET  /.well-known/ans/trust-card.json our own trust card
+GET  /health                          {"ok": true, oracles, cached_reports, in_flight, generator_key, ...}
+```
+
+```bash
+make serve
+curl -s localhost:8000/health
+curl -s -X POST localhost:8000/api/benchmark -H 'content-type: application/json' \
+     -d '{"agent":"dnsdoc.webmesh.ai"}' | jq '.behavior_score, .cached, .coverage'
+curl -sN localhost:8000/api/stream/impact.webmesh.ai          # watch the steps tick
+curl -s -X POST localhost:8000/a2a -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,
+  "method":"message/send","params":{"message":{"role":"user","messageId":"m1",
+  "parts":[{"kind":"text","text":"Benchmark ans://v1.0.6.dnsdoc.webmesh.ai"}]}}}'
+```
+
+### Caching — demo insurance, not a nicety
+
+`dnsdoc.webmesh.ai` degrades under repeated load: during four back-to-back live runs one
+regression run scored 36, then 87 again on retry. The stage demo must never depend on a
+live agent answering twice. So:
+
+- A completed report is cached **in memory keyed by `(host, suite)`** and served by default.
+  The response carries `"cached": true` and `run_at` is the **original** run's timestamp
+  (`served_at` is now). A cached call returns in ~10 ms.
+- `"force": true` bypasses the cache and re-runs. We will not use that on stage.
+- Every report is still written to `out/` by the pipeline, and on startup the server warms
+  the cache from disk with the newest report per `(host, suite)` — so a restart does not
+  cost a live run. Reports from the other mode (mock vs live) are ignored.
+- Two requests for the same `(host, suite)` while a run is in flight **join it** — one
+  pipeline run, both callers get the same events and the same report.
+
+### The stream
+
+`/api/stream/{host}` maps the pipeline's structured events onto the six steps the page
+shows, so the page stays dumb:
+
+```
+registry     Discovered in ANS registry         done: ans://v1.0.6.dnsdoc.webmesh.ai | warn: not in search
+tl           Transparency log entry found       done: agentId … | warn: none
+fingerprint  Certificate fingerprint matched    done: sha256 …=sealed | warn: PENDING (not yet sealed) | fail: MISMATCH
+card         Read agent card                    running: 23 claims extracted… → done: 8 self / 15 capability, 4 unverifiable
+tests        Generating tests                   running: 12 written (batch 1/2) → done: 28 capability + 3 self-claim checks
+run          Running assertions                 running: 12/39 → done
+```
+
+A cache hit replays the same six steps (all `done`) and then `done` with the report, so the
+page renders identically whether the run was live or replayed. A failed run ends with an
+`error` event that says why (no agent card at that host, no API key, could not connect).
+
+### The A2A endpoint — why we are a participant, not an observer
+
+`https://anuabot.vip/a2a` is the endpoint URL we registered in ANS (`ans://v1.0.0.anuabot.vip`).
+It accepts exactly the envelope `bench/agent/transport.py::A2ATransport` sends — so our own
+tool can benchmark us — parses a host or `ans://` name out of the text, runs (or replays)
+the benchmark, and answers with one text part:
+
+```
+Anua Benchmarker — dnsdoc.webmesh.ai (run 2026-09-19 22:43 UTC, cached)
+
+IDENTITY  VERIFIED  ans://v1.0.6.dnsdoc.webmesh.ai  — registry hit, transparency-log entry, live TLS fingerprint = sealed
+BEHAVIOR  83/100  — 21/28 capability, 3/3 self-claim, 4/4 schema, quality 0.59 (10% blend)
+COVERAGE  15/23 declared claims verifiable (65%); 5 unverifiable, 3 schema-only; 28 capability tests + 3 self-claim checks
+
+TOP FINDINGS
+  HIGH   dns.dnssec @ badssl.com — expected False, its answer contained no value for this
+  HIGH   dns.dnssec @ cloudflare.com — expected True, its answer contained no value for this
+  …
+Full report: https://anuabot.vip/api/benchmark/dnsdoc.webmesh.ai
+```
+
+The word `regression` in the message selects the regression suite; `fresh` or `force`
+bypasses the cache. Errors follow JSON-RPC: `-32602` when no agent could be read from the
+text, `-32601` for any method other than `message/send`.
+
+### Our own cards are written to be read by our own pipeline
+
+A vague card is exactly what we criticise in dnsdoc. `bench/server/cards.py` states each
+capability as a discrete claim, and includes the **self-claims this process satisfies the
+moment it is up** — "exposes an A2A endpoint at …/a2a", "publishes its agent card at …",
+"publishes its trust card at …", "serves a health check at …" — with their URLs, so
+`route_claims` classifies them as self-claims and `web.endpoint_live` verifies them without
+calling us. What we cannot yet claim, we do not: no identity certificate has been issued
+(ANS DNS validation pending), so the trust card's `keys` is `[]` and `registration.status`
+says `PENDING_VALIDATION`. The agent card, trust card and (future) registry entry agree on
+url / version / ansName / name, so `drift.card_vs_trust` passes on us — this is unit-tested.
+
+Pointed at ourselves, expect: identity **PENDING** or **NOT_FOUND** until validation
+completes (a viewer must read that as in-progress, not broken), self-claims verified, and
+the capability claims ("returns a behavior score…") mostly UNVERIFIABLE — the coverage
+argument applied to the tool that makes it.
+
+### Deploying — Railway, not Vercel
+
+This is a long-running process with an in-memory cache and blocking network calls, so
+serverless is the wrong shape. `Procfile` runs `uvicorn bench.server.app:app` on `$PORT`.
+Point Railway at the repo; it needs Python ≥ 3.11 and the env vars below. Put
+`anuabot.vip` in front of it (Railway custom domain) so the registered endpoint
+`https://anuabot.vip/a2a` resolves to this process.
+
+| Env var | Required | Meaning |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | for the generated suite | the generator and the extractor; missing key ⇒ `502` with the reason, never a silent skip |
+| `PORT` | no (8000) | set by Railway |
+| `BENCH_PUBLIC_URL` | no (`https://anuabot.vip`) | the origin our cards advertise; set to `http://localhost:8000` locally if you want to benchmark yourself |
+| `BENCH_ANS_AGENT_ID` | no | our ANS agentId (public; default is the registered one) |
+| `BENCH_ANS_STATUS` | no (`PENDING_VALIDATION`) | flip to `ACTIVE` once validation completes |
+| `BENCH_LIVE` | no (`1`) | `0` = mock agent everywhere, for local UI work |
+| `BENCH_WORKERS` | no (3) | thread-pool size for concurrent runs |
+| `BENCH_CONFIG` | no (`config.yaml`) | config path |
+
+No secrets in the repo: the key comes from the environment only. `out/` is ephemeral on
+Railway, so the cache warms from disk only within one deploy — run the three demo agents
+once after each deploy, before going on stage.
+

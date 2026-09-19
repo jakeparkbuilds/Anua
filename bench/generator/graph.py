@@ -199,7 +199,9 @@ def _host_of(target: str) -> str:
 
 
 # ---- nodes (closures over the llm) ------------------------------------------
-def build_graph(llm: LLM):
+def build_graph(llm: LLM, on_event=None):
+    emit = on_event or (lambda name, payload: None)
+
     def parse_claims(st: GenState) -> GenState:
         notes = list(st.get("notes", []))
         try:
@@ -220,6 +222,7 @@ def build_graph(llm: LLM):
             claims.append(CapabilityClaim(claim_text=txt, source=src if src in ("skill", "description", "trust_card", "registry") else "description").model_dump())
         if not claims:
             notes.append("no capability claims extracted from the agent's self-descriptions")
+        emit("claims", {"claims_found": len(claims)})
         return {**st, "claims": claims, "notes": notes}
 
     def route_claims(st: GenState) -> GenState:
@@ -285,6 +288,11 @@ def build_graph(llm: LLM):
                 tgt = (named_mine[0] if named_mine else str(r.get("self_target") or "").strip()) or host
                 selfclaims.append({"claim_text": c.claim_text, "oracle_keys": keys, "target": tgt,
                                    "expected": r.get("self_expected")})
+        emit("routed", {"claims_found": len(claims),
+                        "self": sum(1 for c in claims if c.about == "self"),
+                        "capability": sum(1 for c in claims if c.about != "self"),
+                        "verifiable": sum(1 for c in claims if c.verifiability == Verifiability.VERIFIABLE),
+                        "unverifiable": sum(1 for c in claims if c.verifiability == Verifiability.UNVERIFIABLE)})
         return {**st, "claims": [c.model_dump() for c in claims], "selfclaims": selfclaims, "notes": notes}
 
     def generate_tests(st: GenState) -> GenState:
@@ -295,6 +303,7 @@ def build_graph(llm: LLM):
         notes = list(st.get("notes", []))
         if not claims:
             notes.append("no VERIFIABLE capability claims: no agent-facing tests to generate")
+            emit("tests", {"written": 0, "batch": 0, "batches": 0})
             return {**st, "proposals": [], "notes": notes}
         ac = st["cards"].get("agent_card", {}) or {}
         max_n = int(st.get("max_n", 30))
@@ -322,6 +331,7 @@ def build_graph(llm: LLM):
             got = [g for g in got if isinstance(g, dict)] if isinstance(got, list) else []
             props.extend(got)
             existing.extend(str(g.get("id", "")) for g in got)
+            emit("tests", {"written": len(props), "batch": bi + 1, "batches": len(batches)})
         if not props:
             notes.append("generate_tests produced no usable proposals")
         return {**st, "proposals": props, "notes": notes}
@@ -496,13 +506,14 @@ def report_coverage(st: GenState) -> GenState:
 
 # ---- entry point -------------------------------------------------------------
 def generate(cards: AgentCards, existing: list[Assertion], model: str, max_n: int,
-             llm: LLM | None = None, host: str = "") -> tuple[list[Assertion], CoverageReport, list[str]]:
+             llm: LLM | None = None, host: str = "",
+             on_event=None) -> tuple[list[Assertion], CoverageReport, list[str]]:
     """Returns (generated assertions, coverage report, notes). Raises if no LLM can be
     built — a missing key must be loud, never a silent skip."""
     if llm is None:
         from ..llm import make_llm
         llm = make_llm(model)
-    graph = build_graph(llm)
+    graph = build_graph(llm, on_event=on_event)
     st = graph.invoke({"cards": {"agent_card": cards.agent_card, "trust_card": cards.trust_card,
                                  "registry_entry": cards.registry_entry},
                        "host": host or (cards.endpoint or "").split("://", 1)[-1].split("/", 1)[0],

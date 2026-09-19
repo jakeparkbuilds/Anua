@@ -27,13 +27,19 @@ STAGES = ("discover", "identity", "generate", "transport", "run", "report")
 
 def run(cfg: Config, generate_tests: bool | None = None, log=print, suite: str | None = None,
         llm=None, on_stage: Optional[Callable[[str, str], None]] = None,
-        on_result: Optional[Callable] = None) -> Report:
+        on_result: Optional[Callable] = None,
+        on_event: Optional[Callable[[str, dict], None]] = None) -> Report:
     """`generate_tests=False` is the legacy --no-gen switch: it selects the regression
-    suite. `llm` may be injected (tests / server); otherwise it is built from the env."""
+    suite. `llm` may be injected (tests / server); otherwise it is built from the env.
+
+    `on_stage(name, msg)` fires when a stage STARTS. `on_event(name, payload)` fires with
+    structured facts as they become known (registry hit, identity status, claims counted,
+    tests written, assertions run) — this is what the server streams to the page."""
     suite = suite or ("regression" if generate_tests is False else cfg.suite)
     if suite not in SUITES:
         raise ValueError(f"suite must be one of {SUITES}, got {suite!r}")
     stage = on_stage or (lambda name, msg: None)
+    event = on_event or (lambda name, payload: None)
     notes: list[str] = []
     mode = "live" if cfg.live else "mock"
     host = cfg.target.host
@@ -57,6 +63,9 @@ def run(cfg: Config, generate_tests: bool | None = None, log=print, suite: str |
         cards.registry_entry = entry or {}
     log(f"      registry={'found' if entry else 'not found'} endpoint={cards.endpoint} "
         f"skills={cards.declared_skills} protocols={cards.declared_protocols}")
+    event("discover", {"registry_found": entry is not None, "ans_name": (entry or {}).get("ansName"),
+                       "endpoint": cards.endpoint, "skills": cards.declared_skills,
+                       "protocols": cards.declared_protocols, "card_name": cards.agent_card.get("name")})
 
     # [2] identity ---------------------------------------------------------------
     log("[2/6] verify identity: transparency log + live TLS fingerprint")
@@ -67,6 +76,7 @@ def run(cfg: Config, generate_tests: bool | None = None, log=print, suite: str |
         f"fp_match={identity.fingerprint_match} verified={identity.verified}")
     for n in identity.notes:
         log(f"      note: {n}")
+    event("identity", identity.model_dump())
 
     # [3] tests ------------------------------------------------------------------
     assertions = []
@@ -77,7 +87,7 @@ def run(cfg: Config, generate_tests: bool | None = None, log=print, suite: str |
         log(f"[3/6] LangGraph: read the agent's cards, extract claims, write tests ({cfg.generator.model})")
         stage("generate", "LLM reads the cards and writes oracle-backed tests")
         gen, coverage, gnotes = generate(cards, assertions, cfg.generator.model, cfg.generator.max_generated,
-                                         llm=llm, host=host)
+                                         llm=llm, host=host, on_event=event)
         notes.extend(gnotes)
         for n in gnotes:
             log(f"      note: {n}")
@@ -95,9 +105,13 @@ def run(cfg: Config, generate_tests: bool | None = None, log=print, suite: str |
         assertions.extend(gen)
         if suite == "generated":
             assertions.extend(generic_assertions(gen))
+        event("generated", {"capability_tests": coverage.capability_tests, "selfclaim_tests": coverage.selfclaim_tests,
+                            "claims_found": coverage.claims_found, "verifiable": coverage.verifiable,
+                            "unverifiable": coverage.unverifiable, "schema_only": coverage.schema_only})
     else:
         log("[3/6] generator OFF (regression suite)")
         stage("generate", "skipped: regression suite")
+        event("generated", {"skipped": True, "regression_tests": len(assertions)})
 
     # [4] transport --------------------------------------------------------------
     log(f"[4/6] build transport ({cfg.target.transport if cfg.live else 'mock'})")
@@ -108,10 +122,16 @@ def run(cfg: Config, generate_tests: bool | None = None, log=print, suite: str |
     # [5] run ---------------------------------------------------------------------
     log(f"[5/6] run {len(assertions)} assertions (oracles compute ground truth live)")
     stage("run", f"{len(assertions)} assertions")
+    event("run", {"total": len(assertions)})
+    done = 0
 
     def _log_result(a):
+        nonlocal done
+        done += 1
         mark = "PASS" if a.passed else ("----" if a.passed is None else "FAIL")
         log(f"      {mark} {a.id:<36} {a.kind.value:<11} {a.evidence[:100]}")
+        event("result", {"done": done, "total": len(assertions), "id": a.id, "kind": a.kind.value,
+                         "passed": a.passed, "severity": a.severity.value})
         if on_result:
             on_result(a)
     results = run_all(assertions, t, cards, extractor=extractor, on_result=_log_result)
@@ -132,6 +152,8 @@ def run(cfg: Config, generate_tests: bool | None = None, log=print, suite: str |
         log(f"      behavior_score=INSUFFICIENT_COVERAGE  {report.score_basis}")
         log(f"      {report.explanation}")
     log(f"      wrote {path}")
+    event("report", {"behavior_score": report.behavior_score, "score_status": report.score_status,
+                     "path": str(path)})
 
     if cfg.emit.enabled and cfg.emit.import_url:
         try:

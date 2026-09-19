@@ -1,4 +1,4 @@
-.PHONY: install selftest run run-live probe test clean
+.PHONY: install selftest run run-live probe test serve clean
 
 install:
 	pip install -r requirements.txt
@@ -21,6 +21,9 @@ probe:             ## Print real registry + agent shapes (do this before run-liv
 
 test:
 	python -m pytest -q tests
+
+serve:             ## The benchmark as a service + A2A participant, on $PORT (default 8000)
+	uvicorn bench.server.app:app --host 0.0.0.0 --port $${PORT:-8000}
 
 clean:
 	rm -rf out/*.json .pytest_cache **/__pycache__
