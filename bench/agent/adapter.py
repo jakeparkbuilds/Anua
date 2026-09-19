@@ -125,9 +125,69 @@ def _regex_extract(raw: str, claim: str) -> Optional[Any]:
     return None
 
 
-def extract(raw: str, claim: str) -> Optional[Any]:
+_TLS_OK_KEYS = ("not_after", "notAfter", "issuer", "subject", "san", "sans",
+                "days_remaining", "expires", "expiry", "version", "cipher")
+_STATUS_KEYS = ("status", "status_code", "https_status", "statusCode", "code")
+
+def _bool(v):
+    return v if isinstance(v, bool) else None
+
+def _tls_ok(tls):
+    if not tls or tls.get("error"):
+        return False
+    return tls.get("reachable") is True or any(k in tls for k in _TLS_OK_KEYS)
+
+def _from_evidence(ev, claim):
+    dns  = ev.get("dns")  if isinstance(ev.get("dns"),  dict) else {}
+    tls  = ev.get("tls")  if isinstance(ev.get("tls"),  dict) else {}
+    http = ev.get("http") if isinstance(ev.get("http"), dict) else {}
+    tls_err = str(tls.get("error") or "").lower()
+
+    if claim == "dns.a_record":
+        return sorted(dns["A"]) if "A" in dns else None
+    if claim == "dns.mx":
+        if "MX" not in dns: return None
+        return sorted({str(x).split()[-1].rstrip(".").lower() for x in dns["MX"]})
+    if claim == "dns.resolves":
+        if not dns: return None
+        return any(dns.get(k) for k in ("A", "AAAA", "CNAME", "MX", "NS", "TXT"))
+    if claim == "dns.dnssec":
+        for src in (dns, ev):
+            for k in ("dnssec", "DNSSEC"):
+                if _bool(src.get(k)) is not None: return src[k]
+        return None
+    if claim == "email.spf":
+        if not dns: return None
+        return bool(dns.get("SPF")) or any("v=spf1" in str(t).lower() for t in dns.get("TXT", []))
+    if claim == "email.dmarc":
+        if not dns: return None
+        return bool(dns.get("DMARC"))
+    if claim == "tls.chain_valid":
+        if _bool(tls.get("valid")) is not None: return tls["valid"]
+        if tls_err and any(w in tls_err for w in ("certificate", "verify", "ssl")): return False
+        return True if _tls_ok(tls) else None
+    if claim == "tls.expired":
+        if _bool(tls.get("expired")) is not None: return tls["expired"]
+        if "expired" in tls_err: return True
+        return False if _tls_ok(tls) else None
+    if claim == "tls.hostname_match":
+        if _bool(tls.get("hostname_match")) is not None: return tls["hostname_match"]
+        if any(w in tls_err for w in ("hostname mismatch", "not valid for", "doesn't match")): return False
+        return True if _tls_ok(tls) else None
+    if claim in ("http.https_ok", "http.status"):
+        status = next((http[k] for k in _STATUS_KEYS if isinstance(http.get(k), int)), None)
+        if claim == "http.status": return status
+        if _bool(http.get("https_ok")) is not None: return http["https_ok"]
+        if http.get("https_error"): return False
+        return True if status is not None else None
+    return None
+
+def extract(raw, claim):
     data = _try_json(raw)
-    if data is not None:
+    if isinstance(data, dict):
+        ev = data.get("evidence")
+        if isinstance(ev, dict):
+            return _from_evidence(ev, claim)
         for p in CLAIM_PATHS.get(claim, []):
             v = _walk(data, p)
             if v is not None:
