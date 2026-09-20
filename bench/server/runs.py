@@ -204,7 +204,11 @@ class RunStore:
             else:
                 job.step("registry", "warn", "not in registry search — using the agent's own cards")
             skills = p.get("skills") or []
-            job.step("card", "running", f"{p.get('card_name') or job.host}: {len(skills)} skill(s) declared")
+            if p.get("card_error"):
+                job.card_error = p["card_error"]
+                job.step("card", "fail", p["card_error"] + " — falling back to the registry entry")
+            else:
+                job.step("card", "running", f"{p.get('card_name') or job.host}: {len(skills)} skill(s) declared")
         elif name == "identity":
             if p.get("tl_entry_found"):
                 job.step("tl", "done", f"agentId {p.get('ans_id') or ''}".strip())
@@ -224,8 +228,12 @@ class RunStore:
         elif name == "claims":
             job.step("card", "running", f"{p.get('claims_found', 0)} claims extracted, classifying…")
         elif name == "routed":
-            job.step("card", "done", f"{p['claims_found']} claims: {p['self']} self / {p['capability']} capability, "
-                                     f"{p['unverifiable']} unverifiable")
+            counts = (f"{p['claims_found']} claims: {p['self']} self / {p['capability']} capability, "
+                      f"{p['unverifiable']} unverifiable")
+            if getattr(job, "card_error", None):     # the card never loaded; the claims came from the registry
+                job.step("card", "fail", f"{job.card_error} — {counts} (from the registry entry)")
+            else:
+                job.step("card", "done", counts)
         elif name == "tests":
             job.step("tests", "running", f"{p.get('written', 0)} written" +
                      (f" (batch {p['batch']}/{p['batches']})" if p.get("batches") else ""))
@@ -270,9 +278,11 @@ def cached_steps(report: Report) -> list[dict]:
     else:
         steps.append({"step": "fingerprint", "status": "warn",
                       "detail": "certificate not yet sealed — PENDING" if ident.status == "PENDING" else "no sealed baseline"})
+    card_err = getattr(report.cards, "card_error", None)
     if cov:
-        steps.append({"step": "card", "status": "done",
-                      "detail": f"{cov.claims_found} claims: {cov.self_claims} self / {cov.capability_claims} capability, {cov.unverifiable} unverifiable"})
+        counts = f"{cov.claims_found} claims: {cov.self_claims} self / {cov.capability_claims} capability, {cov.unverifiable} unverifiable"
+        steps.append({"step": "card", "status": "fail" if card_err else "done",
+                      "detail": f"{card_err} — {counts} (from the registry entry)" if card_err else counts})
         steps.append({"step": "tests", "status": "done",
                       "detail": f"{cov.capability_tests} capability tests + {cov.selfclaim_tests} self-claim checks"})
     else:

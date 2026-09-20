@@ -27,6 +27,15 @@ class AgentUnavailable(Exception):
     verdict: oracle tests are left ungraded; `endpoint.reachable` records the reason."""
 
 
+def _post(client: httpx.Client, url: str, **kw) -> httpx.Response:
+    """A refused connection or dead host is the agent being unavailable, not a runner
+    crash: competence tests are left ungraded and `endpoint.reachable` records why."""
+    try:
+        return client.post(url, **kw)
+    except (httpx.ConnectError, httpx.ConnectTimeout) as e:
+        raise AgentUnavailable(f"connection failed: {type(e).__name__}: {str(e)[:120]}") from e
+
+
 def _check_gate(r: httpx.Response) -> None:
     if r.status_code == 402:
         raise AgentUnavailable(f"HTTP 402 payment required (x402: {r.headers.get('payment-required', '')[:40]}...)")
@@ -77,7 +86,7 @@ class A2ATransport:
         }
         t0 = time.perf_counter()
         with httpx.Client(timeout=self.timeout) as c:
-            r = c.post(self.endpoint, json=body)
+            r = _post(c, self.endpoint, json=body)
         ms = int((time.perf_counter() - t0) * 1000)
         _check_gate(r)
         r.raise_for_status()
@@ -98,7 +107,7 @@ class MCPTransport:
                 "params": {"name": self.tool, "arguments": {self.arg_name: prompt}}}
         t0 = time.perf_counter()
         with httpx.Client(timeout=self.timeout, headers={"Accept": "application/json, text/event-stream"}) as c:
-            r = c.post(self.endpoint, json=body)
+            r = _post(c, self.endpoint, json=body)
         ms = int((time.perf_counter() - t0) * 1000)
         _check_gate(r)
         r.raise_for_status()

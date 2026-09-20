@@ -79,6 +79,10 @@ class AgentCards(BaseModel):
     endpoint: Optional[str] = None
     declared_skills: list[str] = Field(default_factory=list)
     declared_protocols: list[str] = Field(default_factory=list)
+    # Set when the agent card could not be fetched (host down, TLS refused, 404). The run
+    # continues on whatever the registry said about the agent: a dead host is a finding,
+    # not a crash — it is exactly what "claims an endpoint it does not serve" looks like.
+    card_error: Optional[str] = None
 
 
 class QualityScores(BaseModel):

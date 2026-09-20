@@ -23,8 +23,15 @@ def _get_json(url: str, timeout: int) -> dict[str, Any]:
 
 
 def fetch(host: str, timeout: int, live: bool, registry_entry: dict | None = None) -> AgentCards:
+    card_error = None
     if live:
-        agent_card = _get_json(f"https://{host}/.well-known/agent-card.json", timeout)
+        try:
+            agent_card = _get_json(f"https://{host}/.well-known/agent-card.json", timeout)
+        except httpx.HTTPError as e:
+            # No card at all. Do not stop: the registry entry still tells us what this agent
+            # CLAIMS (its endpoint, its protocol), and every one of those claims can now be
+            # checked against a host that is not answering.
+            agent_card, card_error = {}, f"agent card unreachable: {type(e).__name__}: {e}"
         try:
             trust_card = _get_json(f"https://{host}/.well-known/ans/trust-card.json", timeout)
         except httpx.HTTPError:
@@ -33,12 +40,18 @@ def fetch(host: str, timeout: int, live: bool, registry_entry: dict | None = Non
         agent_card = json.loads((FIXTURES / "mock_agent_card.json").read_text())
         trust_card = json.loads((FIXTURES / "mock_trust_card.json").read_text())
 
-    cards = AgentCards(agent_card=agent_card, trust_card=trust_card, registry_entry=registry_entry or {})
+    cards = AgentCards(agent_card=agent_card, trust_card=trust_card, registry_entry=registry_entry or {},
+                       card_error=card_error)
     cards.endpoint = agent_card.get("url") or agent_card.get("endpoint")
     if not cards.endpoint:
         for i in agent_card.get("supportedInterfaces", []) or []:
             if isinstance(i, dict) and i.get("url"):
                 cards.endpoint = i["url"]; break
+    reg_endpoints = [e for e in (registry_entry or {}).get("endpoints", []) or [] if isinstance(e, dict)]
+    if not cards.endpoint:
+        for e in reg_endpoints:                     # what the agent REGISTERED as its endpoint
+            if e.get("agentUrl"):
+                cards.endpoint = e["agentUrl"]; break
 
     # A2A cards: skills[] with id/name; some list "capabilities"/"tools"
     skills = agent_card.get("skills") or agent_card.get("tools") or agent_card.get("capabilities") or []
@@ -59,7 +72,7 @@ def fetch(host: str, timeout: int, live: bool, registry_entry: dict | None = Non
             protos.add("mcp")
     if trust_card.get("mcp") or agent_card.get("mcp"):
         protos.add("mcp")
-    for ep in trust_card.get("endpoints", []) or []:
+    for ep in list(trust_card.get("endpoints", []) or []) + reg_endpoints:
         if isinstance(ep, dict) and ep.get("protocol"):
             protos.add(str(ep["protocol"]).lower())
     cards.declared_protocols = sorted(protos)

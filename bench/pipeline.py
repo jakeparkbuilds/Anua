@@ -63,9 +63,13 @@ def run(cfg: Config, generate_tests: bool | None = None, log=print, suite: str |
         cards.registry_entry = entry or {}
     log(f"      registry={'found' if entry else 'not found'} endpoint={cards.endpoint} "
         f"skills={cards.declared_skills} protocols={cards.declared_protocols}")
+    if cards.card_error:
+        log(f"      note: {cards.card_error}")
+        notes.append(cards.card_error)
     event("discover", {"registry_found": entry is not None, "ans_name": (entry or {}).get("ansName"),
                        "endpoint": cards.endpoint, "skills": cards.declared_skills,
-                       "protocols": cards.declared_protocols, "card_name": cards.agent_card.get("name")})
+                       "protocols": cards.declared_protocols, "card_name": cards.agent_card.get("name"),
+                       "card_error": cards.card_error})
 
     # [2] identity ---------------------------------------------------------------
     log("[2/6] verify identity: transparency log + live TLS fingerprint")

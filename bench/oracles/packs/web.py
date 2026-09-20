@@ -141,12 +141,43 @@ def _aux(origin: str, path: str) -> Optional[str]:
     return r.text
 
 
+# A liveness question has one more honest answer than a content question. "Is something
+# serving at X" when X refuses the connection is *no* — but only if it is X that is dead
+# and not us. So before turning a connection failure into False we fetch a control URL:
+# if that works, our network is fine and the target is down (measured); if it also fails,
+# we know nothing and the assertion stays SKIPPED. OracleUnavailable semantics unchanged.
+_CONTROL_URL = "https://api.godaddy.com/"
+_DEAD_TARGET = (httpx.ConnectError, httpx.ConnectTimeout)
+
+
+def _target_is_down(e: OracleUnavailable) -> bool:
+    cause = e.__cause__
+    if not isinstance(cause, _DEAD_TARGET) or is_cert_verification_error(cause):
+        return False
+    try:
+        with httpx.Client(timeout=_TIMEOUT, headers={"User-Agent": _UA}) as c:
+            c.get(_CONTROL_URL)
+        return True                                # we can reach the world; they are down
+    except httpx.HTTPError:
+        return False                               # we are the problem: stay unavailable
+
+
+def _liveness(target: str) -> Optional[int]:
+    """Status of the page, or None when the target itself refused the connection."""
+    try:
+        return _page(target).status
+    except httpx.HTTPError:
+        return None                                # cert failure: nothing usable is there
+    except OracleUnavailable as e:
+        if _target_is_down(e):
+            return None
+        raise
+
+
 # ---- oracles ----------------------------------------------------------------
 def fetchable(target: str) -> bool:
-    try:
-        return _page(target).status < 400
-    except httpx.HTTPError:
-        return False                               # cert failure: page is NOT fetchable
+    st = _liveness(target)
+    return st is not None and st < 400
 
 
 # A protocol endpoint is not a document. dnsdoc's MCP endpoint answers our HTML GET with
@@ -160,11 +191,8 @@ def endpoint_live(target: str) -> bool:
     """True iff SOMETHING is serving at this URL — including an endpoint that rejects the
     shape of our request. Use this for a claim that an endpoint exists; use `fetchable`
     when the claim is that a document can actually be retrieved."""
-    try:
-        st = _page(target).status
-    except httpx.HTTPError:
-        return False                               # cert failure: nothing usable is there
-    return st < 400 or st in _SERVING_BUT_NOT_FOR_US
+    st = _liveness(target)
+    return st is not None and (st < 400 or st in _SERVING_BUT_NOT_FOR_US)
 
 
 def status(target: str) -> int:                 return _page_or_unavailable(target).status
@@ -238,7 +266,8 @@ SPECS = {s.key: s for s in [
     spec("web.endpoint_live", endpoint_live,
          "True iff something is serving at this URL, including a protocol endpoint that "
          "rejects our request shape (405/406/415) or demands payment or auth (401/402/403). "
-         "404, 5xx and TLS failures are False. Use for 'exposes an endpoint at X' claims.",
+         "404, 5xx, TLS failures and a refused connection (with a control host reachable) "
+         "are False. Use for 'exposes an endpoint at X' claims.",
          input="url", negatives=_NOPAGE, pack=P),
     spec("web.status", status, "Final HTTP status code after following redirects", input="url",
          comparator="eq", returns="int", negatives=_NOPAGE, pack=P),
