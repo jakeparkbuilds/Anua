@@ -550,16 +550,16 @@ Be honest about this in the demo. Judges penalize overclaiming, not simulation.
 | Oracles — network pack (13) | ✅ | ✅ ran live; `selftest` 9/9; verdict/unavailable boundary unit-tested |
 | Oracles — web pack (23) | ✅ | ✅ smoke-tested live against `example.com` and `seo.webmesh.ai` |
 | Oracles — whois/RDAP pack (5) | ✅ | ✅ live against `badssl.com` (created 2015-04-07, MarkMonitor) |
-| Assertions + comparators + scoring | ✅ | ✅ 91 unit tests pass (comparators canonicalise FQDN trailing dots — a false HIGH found on the 2A run) |
+| Assertions + comparators + scoring | ✅ | ✅ 138 unit tests pass (comparators canonicalise FQDN trailing dots — a false HIGH found on the 2A run) |
 | Report + JSON output | ✅ | ✅ |
 | Mock pipeline end-to-end | ✅ | ✅ runs clean, finds 2 HIGH failures |
 | **ANS registry search** | ✅ | ✅ **live** — discovers `dnsdoc` by host at `api.godaddy.com` |
 | **ANS transparency log** | ✅ | ✅ **live** — sealed `serverCert.fingerprint` parsed |
 | **TLS fingerprint drift check** | ✅ | ⚠️ **match** proven live; a **mismatch** has never been observed (see below) |
 | **A2A transport** | ✅ | ✅ **live** — real responses from `dnsdoc.webmesh.ai` |
-| **Live pipeline end-to-end** | ✅ | ✅ `behavior_score=87`, identity VERIFIED, 0 HIGH failures |
+| **Live pipeline end-to-end** | ✅ | ✅ dnsdoc **89 / 89 / 89** across three runs after the audit (same generated suite, content-addressed); its only failures are the four DNSSEC tests |
 | Claim-drift detection | ✅ | ✅ **fixed** — real three-way diff; fires on the mock, clean on 3 live agents |
-| Identity: VERIFIED/PENDING/MISMATCH/NOT_FOUND (+UNVERIFIED: sealed but host refuses TLS) | ✅ | ✅ VERIFIED, NOT_FOUND and UNVERIFIED seen live; MISMATCH still never observed |
+| Identity: VERIFIED / PENDING / **ROTATED** / MISMATCH / NOT_FOUND / UNVERIFIED | ✅ | ✅ all three webmesh agents renewed their Let's Encrypt certs on 2026-09-19 23:43 UTC; the old check called that MISMATCH. Now ROTATED (verified cert issued after the seal; attestation stale). A real MISMATCH (older cert, or a TLSA record naming a different cert) has still never been observed |
 | Paywalled/auth-walled agents | ✅ | ✅ **live** — `seo.webmesh.ai` returns HTTP 402 (x402). Left **ungraded**, never scored as incompetence |
 | **Generator: writes tests for an arbitrary agent** | ✅ | ✅ **live** — 29 tests for `dnsdoc` (score 80), 28 for `seo`, from the cards alone |
 | Self-claim vs capability split | ✅ | ✅ **live** — `impact` went from 26/100 with 9 false HIGH failures to 0 failures |
@@ -594,6 +594,49 @@ string to `True` — so an agent answering "certificate validation failed" was g
 had said "valid". Any score produced before those fixes should be discarded.
 
 ---
+
+### 13a. The audit — what was wrong, what a judge can still find
+
+Before the demo the grader was attacked on purpose (`tests/test_audit_*.py` is the record,
+one test per wrong verdict it prevents). Ordered by how badly each would have hurt on stage:
+
+1. **Seventeen HTTP 502s from dnsdoc were graded as seventeen wrong answers** (the "36"
+   run). Agent 5xx / timeouts / refused connections are now NO VERDICT with one retry, and a
+   flaky run is never cached.
+2. **A routine certificate renewal read as MISMATCH.** All three webmesh agents renewed on
+   demo eve. A live cert that verifies for the host and was issued after the ANS seal is
+   ROTATED; a TLSA (DANE) record naming it makes it VERIFIED; anything else is MISMATCH.
+3. **The CLI passed dnsdoc's ansId to every host**, so `example.com` "found" dnsdoc's
+   transparency-log entry and failed its fingerprint. A TL entry must be about the host.
+4. **google.com A records: zero overlap, FAIL** — geo-DNS answers every resolver
+   differently. A/AAAA/NS are graded only when our resolver and two public ones agree.
+5. **The reader was told nameservers come "from RDAP"** and refused to read the ones the
+   agent reported from DNS: a correct answer graded as never given. Oracle provenance
+   never reaches the reader now, and a quote must contain the value it is cited for.
+6. **Regex over prose produced verdicts** ("DNSSEC not evaluated" → False). Pattern
+   matching runs only when no LLM reader exists, and the evidence says so.
+7. **Absent quality counted as zero**, capping any agent without a quality item at 87.5.
+8. Vacuous passes closed: `contains` with an empty oracle value, `one_of` oracles behind a
+   self-claim, a card supplying its own self-claim expectation, `set_overlap` passing on
+   one element in three, a string iterated as characters, `web.text_chars` graded by
+   exact equality, "checks redirects" graded as a redirect *count*.
+
+**What this does not measure — say it before a judge asks:**
+- `dns.dnssec` means "a DS or DNSKEY record exists", not "validates correctly". A signed
+  but broken zone reads as signed.
+- The reader is an LLM. It extracts a value only with a verbatim quote that contains the
+  value, and a reader failure is SKIPPED, never a verdict — but "the agent stated X" is
+  still a model's reading of prose when the agent does not return JSON.
+- An agent that answers correctly but never states the asked-for fact is a FAIL ("asked
+  for dnssec; the answer never mentions it"). That is the design, and it is the demo.
+- MISMATCH has never fired on a real agent. ROTATED has, three times, tonight.
+- Generated tests differ run to run (27-30 tests, different key mix) unless the suite
+  cache is warm. Reruns of the same card grade the same suite; a changed card is a new
+  suite. Across three warm runs dnsdoc scored 89, 89, 89.
+- Quality (readability / grounding / actionability) is a 10 % blend, classical, low
+  confidence. It cannot pass or fail anything.
+- A score off 3 graded tests and a score off 30 are both reported; `score_basis` and
+  `summary.score_confidence` (low < 8, medium < 20, high) say which.
 
 ## 14. What's left to build
 
