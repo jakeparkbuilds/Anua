@@ -316,3 +316,9 @@ def test_ungraded_assertions_are_in_no_denominator():
     r1 = build("a", "h", "live", AgentIdentity(host="h"), AgentCards(), graded, {}, [])
     r2 = build("a", "h", "live", AgentIdentity(host="h"), AgentCards(), graded + [o(3, None), o(4, None), o(5, None)], {}, [])
     assert r1.behavior_score == r2.behavior_score and r2.summary["skipped"] == 3
+
+
+def test_dnsdoc_evidence_expiry_and_issuer_are_read_structurally():
+    raw = json.dumps({"evidence": {"tls": {"reachable": True, "issuer_cn": "WE1", "not_after": "Dec  4 23:29:33 2026 GMT"}}})
+    assert adapter.extract(raw, "tls.issuer") == "WE1"
+    assert compare("date_close", "2026-12-04", adapter.extract(raw, "tls.not_after"))[0]

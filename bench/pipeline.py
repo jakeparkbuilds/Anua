@@ -33,9 +33,10 @@ def _generate_cached(cfg, cards, existing, llm, host, event, log):
     in config (or BENCH_REGENERATE=1) bypasses it."""
     import hashlib, json, os
     from .models import Assertion, CoverageReport
+    from .generator.graph import GEN_VERSION
     key_src = json.dumps({"agent_card": cards.agent_card, "trust_card": cards.trust_card,
                           "registry_entry": cards.registry_entry, "model": cfg.generator.model,
-                          "max": cfg.generator.max_generated}, sort_keys=True, default=str)
+                          "max": cfg.generator.max_generated, "gen": GEN_VERSION}, sort_keys=True, default=str)
     key = hashlib.sha256(key_src.encode()).hexdigest()[:16]
     cache_dir = Path(cfg.report.out_dir) / "tests"
     path = cache_dir / f"{host.replace('.', '_')}_{key}.json"

@@ -60,6 +60,9 @@ _SELF_GRADABLE_RETURNS = frozenset({"bool", "list", "str"})
 _INT_NEEDS = {"web.redirect_count": re.compile(r"\b(count|number|how many|hops|chain length)\b", re.I),
               "web.h1_count": re.compile(r"\b(count|number|how many|multiple|more than one|exactly one|single)\b", re.I)}
 _BATCH = 3                      # capability claims per generate_tests call
+# Bump when routing / validation / allow-list logic changes: cached generated suites
+# (out/tests/) are keyed by this so an old suite is never reused under new rules.
+GEN_VERSION = 4
 
 # Capability tests fire real DNS, TLS and HTTP requests at real hosts. The model chooses
 # the targets, so the set it may choose from is bounded to hosts that exist for exactly

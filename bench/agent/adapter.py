@@ -164,6 +164,12 @@ def _from_evidence(ev, claim):
     if claim == "dns.mx":
         if "MX" not in dns: return None
         return sorted({h for h in (str(x).split()[-1].rstrip(".").lower() for x in dns["MX"]) if h})
+    if claim == "dns.aaaa_record":
+        return sorted(dns["AAAA"]) if "AAAA" in dns else None
+    if claim == "dns.ns":
+        return sorted(str(x).rstrip(".").lower() for x in dns["NS"]) if "NS" in dns else None
+    if claim == "dns.txt":
+        return [str(x).strip('"') for x in dns["TXT"]] if "TXT" in dns else None
     if claim == "dns.resolves":
         if not dns: return None
         return any(dns.get(k) for k in ("A", "AAAA", "CNAME"))   # same definition as the oracle
@@ -178,6 +184,12 @@ def _from_evidence(ev, claim):
     if claim == "email.dmarc":
         if not dns: return None
         return bool(dns.get("DMARC"))
+    if claim == "tls.not_after":
+        v = tls.get("not_after") or tls.get("notAfter") or tls.get("expires") or tls.get("expiry")
+        return str(v) if v else None                     # the comparator parses the format
+    if claim == "tls.issuer":
+        v = tls.get("issuer_cn") or tls.get("issuer")
+        return str(v) if v else None
     if claim == "tls.chain_valid":
         if _bool(tls.get("valid")) is not None: return tls["valid"]
         if tls_err and any(w in tls_err for w in ("certificate", "verify", "ssl")): return False

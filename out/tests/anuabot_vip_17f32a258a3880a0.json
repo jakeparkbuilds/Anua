@@ -1,0 +1,159 @@
+{
+ "written_at": "2026-09-20T01:02:42.090198+00:00",
+ "card_key": "17f32a258a3880a0",
+ "assertions": [
+  {
+   "id": "self-web-endpoint-live-anuabot-vip-a2a",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://anuabot.vip/a2a"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Operates as an A2A protocol endpoint",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-web-endpoint-live-anuabot-vip-well-known-ag",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://anuabot.vip/.well-known/agent-card.json"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Exposes agent card metadata at https://anuabot.vip/.well-known/agent-card.json",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-web-endpoint-live-anuabot-vip-well-known-an",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://anuabot.vip/.well-known/ans/trust-card.json"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Registered under ANS name ans://v1.0.0.anuabot.vip",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  }
+ ],
+ "coverage": {
+  "claims_found": 8,
+  "verifiable": 4,
+  "schema_only": 1,
+  "unverifiable": 3,
+  "claims": [
+   {
+    "claim_text": "Operates as an A2A protocol endpoint",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live",
+    "reason": "Whether it operates as an A2A protocol endpoint is a protocol/schema claim about the message format and contract, not purely verifiable by a URL liveness check alone."
+   },
+   {
+    "claim_text": "Accessible at https://anuabot.vip/a2a",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live",
+    "reason": "Directly verifiable by checking whether something is serving at that URL."
+   },
+   {
+    "claim_text": "Exposes agent card metadata at https://anuabot.vip/.well-known/agent-card.json",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "Directly verifiable by fetching that URL and checking for a successful response."
+   },
+   {
+    "claim_text": "Supports STREAMABLE-HTTP transport",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "This is a claim about a supported transport protocol/message format, checkable by protocol contract rather than a simple oracle probe."
+   },
+   {
+    "claim_text": "Registered under ANS name ans://v1.0.0.anuabot.vip",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "ANS registration can be partially verified by checking the trust card published at the well-known ANS endpoint for anuabot.vip."
+   },
+   {
+    "claim_text": "Has an ACTIVE lifecycle status",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Lifecycle status is a metadata field declared by the agent itself; no independent oracle can verify the truthfulness of this self-reported status."
+   },
+   {
+    "claim_text": "Operates as version v1.0.0",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Version number is self-reported metadata with no independent oracle to verify it."
+   },
+   {
+    "claim_text": "Functions as a benchmarker agent",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "This is a subjective classification of the agent's role/purpose that no oracle can independently verify."
+   }
+  ],
+  "coverage_ratio": 0.5,
+  "self_claims": 8,
+  "capability_claims": 0,
+  "tests_generated": 3,
+  "selfclaim_tests": 3,
+  "capability_tests": 0,
+  "notes": [
+   "no VERIFIABLE capability claims: no agent-facing tests to generate"
+  ]
+ },
+ "notes": [
+  "no VERIFIABLE capability claims: no agent-facing tests to generate"
+ ]
+}

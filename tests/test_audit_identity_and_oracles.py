@@ -186,3 +186,15 @@ def test_flaky_run_is_not_cached_but_a_consistently_dead_host_is(tmp_path, monke
         store._work(job)
         assert job.report is rep and (("h", "generated") in store._cache) == cached
         store._cache.clear()
+
+
+def test_new_record_oracles_exist_and_read_dnsdoc_evidence():
+    from bench.oracles.registry import SPECS
+    from bench.agent import adapter
+    for k in ("dns.aaaa_record", "dns.ns", "dns.txt"):
+        assert SPECS[k].comparator == "set_overlap" and SPECS[k].returns == "list"
+    raw = json.dumps({"evidence": {"dns": {"NS": ["ns3.cloudflare.com.", "ns4.cloudflare.com."], "AAAA": ["2606:4700::1"],
+                                            "TXT": ["\"v=spf1 -all\""]}}})
+    assert adapter.extract(raw, "dns.ns") == ["ns3.cloudflare.com", "ns4.cloudflare.com"]
+    assert adapter.extract(raw, "dns.aaaa_record") == ["2606:4700::1"]
+    assert adapter.extract(raw, "dns.txt") == ["v=spf1 -all"]

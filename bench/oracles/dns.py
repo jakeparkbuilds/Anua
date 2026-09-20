@@ -66,6 +66,44 @@ def a_record(domain: str) -> list[str]:
     return ours
 
 
+def _stable_records(domain: str, rdtype: str) -> list[str]:
+    """Records of one type, graded only when our resolver and two public ones agree
+    (same rule as a_record)."""
+    def via(ns):
+        r = _resolver if ns is None else dns.resolver.Resolver(configure=False)
+        if ns is not None:
+            r.nameservers = [ns]; r.lifetime = 8.0
+        try:
+            return sorted(str(x).rstrip(".").lower() for x in r.resolve(domain, rdtype))
+        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
+            return []
+        except dns.exception.DNSException as e:
+            raise OracleUnavailable(f"DNS {rdtype} {domain} via {ns or 'system'}: {type(e).__name__}") from e
+    ours = via(None)
+    for ns in _PUBLIC_RESOLVERS:
+        if via(ns) != ours:
+            raise OracleUnavailable(f"{rdtype} records for {domain} vary by resolver: no single truth to grade")
+    return ours
+
+
+def aaaa_record(domain: str) -> list[str]:
+    return _stable_records(domain, "AAAA")
+
+
+def ns(domain: str) -> list[str]:
+    """Live NS records (lowercase, no trailing dot). What an agent that 'runs NS checks'
+    actually reports — RDAP's nameserver list is a registry view and can differ."""
+    return _stable_records(domain, "NS")
+
+
+def txt(domain: str) -> list[str]:
+    """TXT record strings, each joined and stripped of quotes."""
+    try:
+        return sorted(b"".join(r.strings).decode(errors="ignore") for r in _resolve(domain, "TXT"))
+    except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
+        return []
+
+
 def resolves(domain: str) -> bool:
     try:
         _resolve(domain, "A")
