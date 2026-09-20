@@ -21,10 +21,16 @@ from pathlib import Path
 from typing import Any, Optional
 
 from ..config import load, Config
+from ..ans.registry import Registry, _first
 from ..models import Report
 from .. import pipeline
 
 SUITES = ("generated", "regression", "both")
+# Benchmarked at startup so the demo path is always a cache hit. BENCH_PREWARM overrides
+# (comma-separated hosts; empty string disables).
+PREWARM_HOSTS = tuple(h.strip() for h in os.getenv(
+    "BENCH_PREWARM", "dnsdoc.webmesh.ai,impact.webmesh.ai,seo.webmesh.ai,anuabot.vip").split(",") if h.strip())
+UNKNOWN_HOST_MAX_TESTS = 20      # a first-time host gets a smaller generated suite
 STEPS = ("registry", "tl", "fingerprint", "card", "tests", "run")
 STEP_LABELS = {
     "registry": "Discovered in ANS registry",
@@ -52,6 +58,35 @@ def parse_agent(text: str) -> Optional[str]:
         if _DOMAIN.match(w) and not w.startswith("e.g"):
             return w
     return None
+
+
+_NAME = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$", re.I)
+
+
+def resolve_name(name: str, store: "RunStore") -> Optional[str]:
+    """A bare name ("dnsdoc") is not a host. Try, in order: a cached report whose first
+    label is the name; then the registry search (its own fuzzy ranking), keeping the
+    ACTIVE hit whose host starts with the name or whose display name equals it."""
+    name = (name or "").strip().lower()
+    if not _NAME.match(name):
+        return None
+    with store._lock:
+        for (h, _s) in store._cache:
+            if h.split(".")[0] == name:
+                return h
+    if not store.live:
+        return None
+    reg = Registry(store._base_cfg.ans.search_base, store._base_cfg.ans.transparency_base,
+                   store._base_cfg.ans.timeout_s, live=True)
+    hits = []
+    for a in reg.search(name, limit=50):
+        host = str(_first(a, "agentHost", "host", default="")).lower()
+        disp = str(_first(a, "displayName", "name", default="")).lower()
+        if not host:
+            continue
+        if host.split(".")[0] == name or disp == name:
+            hits.append((str(_first(a, "lifecycle.status", default="")).upper() == "ACTIVE", host))
+    return max(hits)[1] if hits else None
 
 
 class Job:
@@ -168,7 +203,40 @@ class RunStore:
             cfg.target.ans_id = ""                   # the yaml's ans_id belongs to the yaml's host
         cfg.target.host = host
         cfg.suite = suite
+        if not self._known(host):
+            # Never seen this host: cap the generated suite so a live run on stage stays
+            # short. Hosts with a generated suite already on disk keep their full cap (the
+            # suite cache is keyed by cap, so a cached example run is never regenerated).
+            cfg.generator.max_generated = min(cfg.generator.max_generated, UNKNOWN_HOST_MAX_TESTS)
         return cfg
+
+    def _known(self, host: str) -> bool:
+        prefix = host.replace(".", "_") + "_"
+        return any(k[0] == host for k in self._cache) or any(
+            p.name.startswith(prefix) for p in (self.out_dir / "tests").glob("*.json"))
+
+    # ---- examples for the landing page ---------------------------------------------
+    def examples(self, limit: int = 8) -> list[dict]:
+        """Cached generated-suite reports only, highest score first, no-score last. Reads
+        memory, never runs anything."""
+        with self._lock:
+            reports = [r for (h, s), r in self._cache.items() if s == "generated"]
+        rows = [{"host": r.target_host, "score": r.behavior_score, "status": r.score_status,
+                 "identity": r.identity.status, "confidence": (r.summary or {}).get("score_confidence"),
+                 "run_at": r.run_at.isoformat()} for r in reports]
+        rows.sort(key=lambda x: (x["score"] is None, -(x["score"] or 0), x["host"]))
+        return rows[:limit]
+
+    def prewarm(self, hosts=PREWARM_HOSTS) -> None:
+        """Benchmark the example hosts that are not already cached. Runs in the
+        background after startup; every error is swallowed — a warm cache is a
+        convenience, never a requirement."""
+        for h in hosts:
+            try:
+                if self.cached(h, "generated") is None:
+                    self.wait_report(h, "generated")
+            except Exception:
+                pass
 
     def _work(self, job: Job) -> None:
         try:

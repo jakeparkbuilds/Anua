@@ -268,13 +268,63 @@ class Runner:
         return a
 
 
+AGENT_KINDS = (Kind.ORACLE, Kind.CONSISTENCY, Kind.QUALITY)   # the kinds that call the agent
+
+
+def _prefetch(r: Runner, assertions: list[Assertion], workers: int, deadline: float) -> None:
+    """Fill the runner's response cache concurrently — the agent calls are the slow part
+    of a run and independent of each other. Grading still happens afterwards, in order,
+    on the same thread, so nothing about a verdict changes: `run()` finds the answer in
+    `_resp_cache` exactly as if it had asked itself. A permanent refusal (402/401) seen by
+    any worker blocks the rest, as the sequential path would after its first refusal."""
+    import concurrent.futures as cf, time
+    prompts: list[Assertion] = []
+    seen: set[str] = set()
+    for a in assertions:
+        if a.kind in (Kind.ORACLE, Kind.QUALITY):        # consistency calls are force_fresh by design
+            pr = adapter.build_prompt(a)
+            if pr not in seen:
+                seen.add(pr); prompts.append(a)
+    if len(prompts) < 2:
+        return
+
+    def one(a: Assertion) -> None:
+        if r._blocked or time.monotonic() > deadline:
+            return
+        try:
+            r._ask(a)
+        except AgentUnavailable:
+            pass                                          # recorded (or retried) by run()
+        except Exception:
+            pass
+    with cf.ThreadPoolExecutor(max_workers=workers, thread_name_prefix="ask") as ex:
+        futs = [ex.submit(one, a) for a in prompts]
+        try:
+            cf.wait(futs, timeout=None if deadline == float("inf") else max(0.0, deadline - time.monotonic()))
+        finally:
+            for f in futs:
+                f.cancel()
+
+
 def run_all(assertions: list[Assertion], transport, cards: AgentCards, extractor=None,
-            on_result=None) -> list[Assertion]:
+            on_result=None, workers: int = 5, timeout_s: float | None = 45.0) -> list[Assertion]:
+    """Run every assertion, in order. Agent calls are prefetched `workers` at a time; after
+    `timeout_s` seconds the assertions that would still need the agent are SKIPPED (ours:
+    we ran out of time, the agent was not graded on them) and the rest still run."""
+    import time
     r = Runner(transport, cards, extractor)
     r.plan(assertions)
+    deadline = time.monotonic() + (timeout_s if timeout_s else float("inf"))
+    if workers and workers > 1:
+        _prefetch(r, assertions, workers, deadline)
     out = []
     for a in assertions:
-        out.append(r.run(a))
+        needs_agent = a.kind in AGENT_KINDS or (a.kind == Kind.SCHEMA and a.claim == "endpoint.reachable")
+        answered = a.kind in AGENT_KINDS and adapter.build_prompt(a) in r._resp_cache
+        if time.monotonic() > deadline and needs_agent and not answered:
+            out.append(r._skip(a, f"run deadline reached ({timeout_s:.0f}s): this test was not attempted"))
+        else:
+            out.append(r.run(a))
         if on_result:
             on_result(out[-1])
     return out

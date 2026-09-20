@@ -1,0 +1,308 @@
+{
+ "written_at": "2026-09-20T05:55:26.477989+00:00",
+ "card_key": "9d2cd323773765aa",
+ "assertions": [
+  {
+   "id": "self-web-endpoint-live-buyer-agentvouch-us-mcp",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://buyer.agentvouch.us/mcp"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: The signed quote result can be handed to verify_quote at https://buyer.agentvouch.us/mcp to watch every check run",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-web-endpoint-live-supplier-agentvouch-us",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://supplier.agentvouch.us"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Exposes a JSON-RPC endpoint at https://supplier.agentvouch.us",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-web-endpoint-live-supplier-agentvouch-us-mc",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://supplier.agentvouch.us/mcp"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Exposes an MCP endpoint at https://supplier.agentvouch.us/mcp using streamable-http transport",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-dns-txt-supplier-agentvouch-us",
+   "kind": "selfclaim",
+   "claim": "dns.txt",
+   "input": {
+    "domain": "supplier.agentvouch.us"
+   },
+   "prompt": null,
+   "oracle": "dns.txt",
+   "comparator": "nonempty",
+   "expected_override": null,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Has an ANS identity registered as ans://v1.0.0.supplier.agentvouch.us",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-web-endpoint-live-transparency-ans-godaddy-",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://transparency.ans.godaddy.com/v1/agents/3de0b8bd-7682-4d7b-9712-29fcfbb77bba"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Has a transparency log entry at https://transparency.ans.godaddy.com/v1/agents/3de0b8bd-7682-4d7b-9712-29fcfbb77bba",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-web-endpoint-live-supplier-agentvouch-us-we",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://supplier.agentvouch.us/.well-known/ans/trust-card.json"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Publishes a trust card at https://supplier.agentvouch.us/.well-known/ans/trust-card.json",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  }
+ ],
+ "coverage": {
+  "claims_found": 18,
+  "verifiable": 8,
+  "schema_only": 6,
+  "unverifiable": 4,
+  "claims": [
+   {
+    "claim_text": "Signs single-use quotes bound to one buyer, one amount, and a short expiry with its ANS identity key",
+    "source": "description",
+    "about": "self",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Signing behavior and cryptographic binding are protocol/schema properties not independently verifiable by any catalog oracle."
+   },
+   {
+    "claim_text": "Buyers verify the agent through GoDaddy ANS before paying",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes a protocol/trust verification flow involving GoDaddy ANS, not measurable by a catalog oracle."
+   },
+   {
+    "claim_text": "Signs a quote over quote ID, supplier, buyer, amount, payTo, and expiry with its ANS-certified key",
+    "source": "skill",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes a cryptographic signing protocol over specific fields; not verifiable by any catalog oracle."
+   },
+   {
+    "claim_text": "Callable as the issue_quote MCP tool",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes a named MCP tool interface; verifiable by protocol contract, not by a catalog oracle."
+   },
+   {
+    "claim_text": "The signed quote result can be handed to verify_quote at https://buyer.agentvouch.us/mcp to watch every check run",
+    "source": "skill",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live",
+    "reason": "Claims a functional endpoint at https://buyer.agentvouch.us/mcp exists and accepts verify_quote calls; endpoint liveness is checkable."
+   },
+   {
+    "claim_text": "Exposes a JSON-RPC endpoint at https://supplier.agentvouch.us",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live",
+    "reason": "Claims a live JSON-RPC endpoint at the agent's own URL, checkable via endpoint liveness oracle."
+   },
+   {
+    "claim_text": "Exposes an MCP endpoint at https://supplier.agentvouch.us/mcp using streamable-http transport",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live",
+    "reason": "Claims a live MCP endpoint at the agent's own /mcp path; transport type is schema but liveness is oracle-checkable."
+   },
+   {
+    "claim_text": "Requires no authentication; anyone may ask for a quote",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes an authentication policy (no auth required), which is a protocol/contract property."
+   },
+   {
+    "claim_text": "A quote is bound to one buyer, amount, and expiry, payable only to this supplier's attested account",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Describes semantic binding properties of a quote artifact; not independently verifiable by any catalog oracle."
+   },
+   {
+    "claim_text": "Issuing a quote moves no money",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Subjective/behavioral claim about financial side effects; not verifiable by any catalog oracle."
+   },
+   {
+    "claim_text": "Has an ANS identity registered as ans://v1.0.0.supplier.agentvouch.us",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "dns.txt",
+    "reason": "ANS identity registration may be reflected in DNS TXT records at the agent's own domain."
+   },
+   {
+    "claim_text": "Has a transparency log entry at https://transparency.ans.godaddy.com/v1/agents/3de0b8bd-7682-4d7b-9712-29fcfbb77bba",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "Claims a specific URL exists and is fetchable in the GoDaddy transparency log."
+   },
+   {
+    "claim_text": "Publishes a trust card at https://supplier.agentvouch.us/.well-known/ans/trust-card.json",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "Claims a specific well-known URL at the agent's own domain is fetchable."
+   },
+   {
+    "claim_text": "Exposes an A2A endpoint at https://supplier.agentvouch.us with metadata at https://supplier.agentvouch.us/.well-known/agent-card.json",
+    "source": "trust_card",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live,web.fetchable",
+    "reason": "Claims a live A2A endpoint and a fetchable agent-card metadata URL at the agent's own domain."
+   },
+   {
+    "claim_text": "Has agent ID 3de0b8bd-7682-4d7b-9712-29fcfbb77bba",
+    "source": "trust_card",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "Agent ID is an identifier claim verifiable only by reading the trust card content, which requires content parsing beyond catalog oracles."
+   },
+   {
+    "claim_text": "Registry lifecycle status is ACTIVE",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Registry status is a property of an external ANS registry record not covered by any catalog oracle."
+   },
+   {
+    "claim_text": "Does not support push notifications",
+    "source": "description",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes a protocol capability (push notifications) declared in the agent's metadata contract."
+   },
+   {
+    "claim_text": "Does not support streaming",
+    "source": "description",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes a protocol capability (streaming) declared in the agent's metadata contract."
+   }
+  ],
+  "coverage_ratio": 0.444,
+  "self_claims": 13,
+  "capability_claims": 5,
+  "tests_generated": 6,
+  "selfclaim_tests": 6,
+  "capability_tests": 0,
+  "notes": [
+   "no VERIFIABLE capability claims: no agent-facing tests to generate"
+  ]
+ },
+ "notes": [
+  "no VERIFIABLE capability claims: no agent-facing tests to generate"
+ ]
+}

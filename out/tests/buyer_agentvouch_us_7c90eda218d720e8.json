@@ -1,0 +1,302 @@
+{
+ "written_at": "2026-09-20T05:49:25.531971+00:00",
+ "card_key": "7c90eda218d720e8",
+ "assertions": [
+  {
+   "id": "self-web-endpoint-live-buyer-agentvouch-us",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://buyer.agentvouch.us/"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Fetches an agent's ANS trust card given a hostname",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-web-endpoint-live-buyer-agentvouch-us-mcp",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://buyer.agentvouch.us/mcp"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Exposes an MCP endpoint at https://buyer.agentvouch.us/mcp using streamable-http transport",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-web-endpoint-live-buyer-agentvouch-us-well-",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://buyer.agentvouch.us/.well-known/ans/trust-card.json"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Has a signed ANS trust card published at https://buyer.agentvouch.us/.well-known/ans/trust-card.json",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-web-endpoint-live-transparency-ans-godaddy-",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://transparency.ans.godaddy.com/v1/agents/e18e0a0c-f71a-4f20-a79a-a6fcebb1db85"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Is registered in the GoDaddy ANS transparency log at https://transparency.ans.godaddy.com/v1/agents/e18e0a0c-f71a-4f20-a79a-a6fcebb1db85",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  }
+ ],
+ "coverage": {
+  "claims_found": 23,
+  "verifiable": 6,
+  "schema_only": 4,
+  "unverifiable": 13,
+  "claims": [
+   {
+    "claim_text": "Fetches an agent's ANS trust card given a hostname",
+    "source": "skill",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "Fetching a trust card for an arbitrary caller-supplied hostname is a capability, but whether the agent correctly fetches and returns it cannot be verified by any catalog oracle independently."
+   },
+   {
+    "claim_text": "Verifies an agent's identity certificate against the GoDaddy ANS transparency log",
+    "source": "skill",
+    "about": "self",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "This is a capability claim about verification logic the agent performs; no catalog oracle can independently confirm the agent's verification behavior."
+   },
+   {
+    "claim_text": "Checks sealed fingerprint during identity verification",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Internal verification logic; no catalog oracle covers this behavior."
+   },
+   {
+    "claim_text": "Checks hostname during identity verification",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Internal verification logic; no catalog oracle covers this behavior."
+   },
+   {
+    "claim_text": "Checks ANS name during identity verification",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Internal verification logic; no catalog oracle covers this behavior."
+   },
+   {
+    "claim_text": "Checks liveness during identity verification",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Internal verification logic; no catalog oracle covers this behavior."
+   },
+   {
+    "claim_text": "Reports an advisory Trust Index score for an agent",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "The Trust Index score is a value the agent invents/computes; no catalog oracle can independently verify it."
+   },
+   {
+    "claim_text": "Verifies ANS identity and liveness of the signer of a quote",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Internal verification logic on caller-supplied input; no catalog oracle covers this."
+   },
+   {
+    "claim_text": "Verifies the signature over the terms of a quote",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Signature verification is a cryptographic/protocol check on a message format, not measurable by a catalog oracle."
+   },
+   {
+    "claim_text": "Checks expiry of a quote",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Internal logic on caller-supplied quote data; no catalog oracle covers this."
+   },
+   {
+    "claim_text": "Checks audience of a quote",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Internal logic on caller-supplied quote data; no catalog oracle covers this."
+   },
+   {
+    "claim_text": "Checks mandate of a quote",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Internal logic on caller-supplied quote data; no catalog oracle covers this."
+   },
+   {
+    "claim_text": "Checks whether payTo matches the account the signer attests in its signed card",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Internal verification logic on caller-supplied data; no catalog oracle covers this."
+   },
+   {
+    "claim_text": "Refuses to pay when verifying a quote (pays nothing during verify_quote)",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Behavioral claim about agent's payment logic; no catalog oracle can verify this."
+   },
+   {
+    "claim_text": "Pays one genuinely verified supplier in the run_scenarios skill",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Behavioral claim about agent's payment logic in a scenario; no catalog oracle can verify this."
+   },
+   {
+    "claim_text": "Blocks eight attack types: impostor certificate, copied certificate, replayed challenge, tampered quote, replayed quote, wrong-audience quote, over-limit payment, genuine-but-unauthorized payee",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Security behavior claims about how the agent handles adversarial inputs; no catalog oracle can verify these."
+   },
+   {
+    "claim_text": "Produces a hash-chained audit ledger as evidence of payment scenarios",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Output format/content claim about agent's internal ledger; no catalog oracle covers this."
+   },
+   {
+    "claim_text": "Exposes an A2A endpoint at https://buyer.agentvouch.us",
+    "source": "trust_card",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live",
+    "reason": "Directly checkable by probing whether something is serving at https://buyer.agentvouch.us."
+   },
+   {
+    "claim_text": "Exposes an MCP endpoint at https://buyer.agentvouch.us/mcp using streamable-http transport",
+    "source": "trust_card",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live",
+    "reason": "Liveness is oracle-checkable, but the transport protocol (streamable-http) is a protocol/format claim checkable by contract."
+   },
+   {
+    "claim_text": "Has a signed ANS trust card published at https://buyer.agentvouch.us/.well-known/ans/trust-card.json",
+    "source": "trust_card",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "Whether the trust card URL is fetchable is directly checkable by the web.fetchable oracle."
+   },
+   {
+    "claim_text": "Is registered in the GoDaddy ANS transparency log at https://transparency.ans.godaddy.com/v1/agents/e18e0a0c-f71a-4f20-a79a-a6fcebb1db85",
+    "source": "trust_card",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "Whether the registration URL is fetchable/exists is directly checkable by the web.fetchable oracle."
+   },
+   {
+    "claim_text": "Requires no authentication credential for vouching and demo scenarios (public and read-only)",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "Whether the endpoint requires auth is partially inferable but the claim about specific skills being public/read-only cannot be fully verified by any catalog oracle."
+   },
+   {
+    "claim_text": "Applies rate limiting per client",
+    "source": "description",
+    "about": "self",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Rate limiting behavior cannot be verified by any catalog oracle."
+   }
+  ],
+  "coverage_ratio": 0.261,
+  "self_claims": 8,
+  "capability_claims": 15,
+  "tests_generated": 4,
+  "selfclaim_tests": 4,
+  "capability_tests": 0,
+  "notes": [
+   "no VERIFIABLE capability claims: no agent-facing tests to generate"
+  ]
+ },
+ "notes": [
+  "no VERIFIABLE capability claims: no agent-facing tests to generate"
+ ]
+}

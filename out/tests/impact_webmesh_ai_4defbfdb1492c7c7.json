@@ -1,0 +1,348 @@
+{
+ "written_at": "2026-09-20T05:50:36.344152+00:00",
+ "card_key": "4defbfdb1492c7c7",
+ "assertions": [
+  {
+   "id": "self-web-endpoint-live-impact-webmesh-ai",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://impact.webmesh.ai"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Exposes an A2A endpoint at https://impact.webmesh.ai",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-web-endpoint-live-impact-webmesh-ai-mcp",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://impact.webmesh.ai/mcp"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Exposes an MCP server at https://impact.webmesh.ai/mcp via streamable-HTTP",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-web-endpoint-live-impact-webmesh-ai-well-kn",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://impact.webmesh.ai/.well-known/ans/trust-card.json"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Publishes a Trust Card at https://impact.webmesh.ai/.well-known/ans/trust-card.json",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-web-endpoint-live-transparency-ans-godaddy-",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://transparency.ans.godaddy.com/v1/agents/c6f2032a-7d3c-43b6-a6ef-6aa2165b3c16"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Publishes a transparency log entry at https://transparency.ans.godaddy.com/v1/agents/c6f2032a-7d3c-43b6-a6ef-6aa2165b3c16",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-dns-dnssec-impact-webmesh-ai",
+   "kind": "selfclaim",
+   "claim": "dns.dnssec",
+   "input": {
+    "domain": "impact.webmesh.ai"
+   },
+   "prompt": null,
+   "oracle": "dns.dnssec",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Supports DNSSEC and DANE TLSA for identity anchoring",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-http-https-ok-impact-webmesh-ai",
+   "kind": "selfclaim",
+   "claim": "http.https_ok",
+   "input": {
+    "domain": "impact.webmesh.ai"
+   },
+   "prompt": null,
+   "oracle": "http.https_ok",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Is publicly accessible with no authentication required",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  }
+ ],
+ "coverage": {
+  "claims_found": 23,
+  "verifiable": 7,
+  "schema_only": 5,
+  "unverifiable": 11,
+  "claims": [
+   {
+    "claim_text": "Scores domains for technical disruption on a 1-10 scale",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "The score is invented by the agent and cannot be independently computed by any oracle."
+   },
+   {
+    "claim_text": "Scores domains for media/news impact on a 1-10 scale",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "The score is invented by the agent and cannot be independently computed by any oracle."
+   },
+   {
+    "claim_text": "Buckets domains into DO NOT TOUCH / MANAGEMENT APPROVAL / STANDARD PROCESSING categories",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Classification into these categories is a subjective judgment made by the agent, not independently verifiable."
+   },
+   {
+    "claim_text": "Reports what breaks technically when a domain is removed from DNS resolution",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "This is a predictive/analytical claim about consequences that cannot be independently verified by an oracle."
+   },
+   {
+    "claim_text": "Reports which services fail as a result of a domain takedown",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Predicting service failures from a takedown is a subjective analysis not independently computable by any oracle."
+   },
+   {
+    "claim_text": "Reports how public the damage would be from a domain takedown",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Assessing public visibility of damage is a subjective judgment not independently verifiable."
+   },
+   {
+    "claim_text": "Provides a concrete consequence for each domain analyzed",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Whether the consequence is 'concrete' is subjective and the content itself cannot be independently verified."
+   },
+   {
+    "claim_text": "Supports analysis before ServerHold actions",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "This describes a use-case context for the agent's analysis, not independently verifiable by an oracle."
+   },
+   {
+    "claim_text": "Supports analysis before ClientHold actions",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "This describes a use-case context for the agent's analysis, not independently verifiable by an oracle."
+   },
+   {
+    "claim_text": "Supports analysis before domain deletion",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "This describes a use-case context for the agent's analysis, not independently verifiable by an oracle."
+   },
+   {
+    "claim_text": "Supports analysis before abuse suspensions",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "This describes a use-case context for the agent's analysis, not independently verifiable by an oracle."
+   },
+   {
+    "claim_text": "Accepts one or more domains as input in a single request",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "This is a claim about the agent's input message format/protocol contract, checkable by schema/contract."
+   },
+   {
+    "claim_text": "Exposes an A2A endpoint at https://impact.webmesh.ai",
+    "source": "trust_card",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live",
+    "reason": "Checks whether something is serving at the agent's own URL."
+   },
+   {
+    "claim_text": "Exposes an MCP server at https://impact.webmesh.ai/mcp via streamable-HTTP",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live",
+    "reason": "Checks whether an endpoint is live at the agent's /mcp path; streamable-HTTP is a protocol detail covered by schema."
+   },
+   {
+    "claim_text": "Presents an ANS Identity Certificate (mutualTLS) during the TLS handshake",
+    "source": "description",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "This is a claim about the TLS/mTLS protocol and certificate presentation, checkable by protocol contract not standard oracles."
+   },
+   {
+    "claim_text": "Signs outbound requests using RFC 9421 HTTP Message Signatures with an Ed25519 key",
+    "source": "description",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "This is a claim about a cryptographic signing protocol (RFC 9421), verifiable by protocol/schema inspection."
+   },
+   {
+    "claim_text": "Publishes a Trust Card at https://impact.webmesh.ai/.well-known/ans/trust-card.json",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "Checks whether the trust card URL is fetchable at the agent's own well-known path."
+   },
+   {
+    "claim_text": "Publishes a transparency log entry at https://transparency.ans.godaddy.com/v1/agents/c6f2032a-7d3c-43b6-a6ef-6aa2165b3c16",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "Checks whether the transparency log entry URL is fetchable."
+   },
+   {
+    "claim_text": "Supports DNSSEC and DANE TLSA for identity anchoring",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "dns.dnssec",
+    "reason": "DNSSEC support is oracle-checkable; DANE TLSA is a protocol/schema claim not covered by the catalog."
+   },
+   {
+    "claim_text": "Is publicly accessible with no authentication required",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable,http.https_ok",
+    "reason": "Checks whether the agent's endpoint is reachable without auth barriers."
+   },
+   {
+    "claim_text": "Supports agent discovery of ANS-registered agents",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "This is a claim about a protocol capability (ANS discovery), verifiable by protocol/schema contract."
+   },
+   {
+    "claim_text": "Supports agent identity verification via ANS and DNS-AID",
+    "source": "registry",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "This is a claim about a protocol capability (ANS/DNS-AID identity verification), verifiable by protocol/schema contract."
+   },
+   {
+    "claim_text": "Supports live A2A agent interaction",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live",
+    "reason": "Checks whether the agent's A2A endpoint is live and serving."
+   }
+  ],
+  "coverage_ratio": 0.304,
+  "self_claims": 10,
+  "capability_claims": 13,
+  "tests_generated": 6,
+  "selfclaim_tests": 6,
+  "capability_tests": 0,
+  "notes": [
+   "no VERIFIABLE capability claims: no agent-facing tests to generate"
+  ]
+ },
+ "notes": [
+  "no VERIFIABLE capability claims: no agent-facing tests to generate"
+ ]
+}

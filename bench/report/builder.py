@@ -4,19 +4,25 @@ behavior_score = 0.70 * oracle + 0.25 * selfclaim + 0.20 * schema + 0.10 * quali
 normalised over whichever pools actually produced a graded result. Quality contributes
 only to this blend — it never flips a verdict. HIGH-severity failures are listed first.
 
-There is one case where the honest output is no number at all. `oracle` and `consistency`
-are the only pools that measure BEHAVIOUR — what the agent does when you call it. If
-nothing in them was graded, a "score" would be built entirely from the agent's endpoint
-being up and its prose being readable. That is not a low score, it is not a score, and
-reporting one is the same self-declaration problem this benchmark exists to expose. So
-score_status becomes INSUFFICIENT_COVERAGE, behavior_score is None, and score_basis says
-why.
+Scoring policy (renormalised blend):
+  * A pool (capability = oracle+consistency, self-claim, schema, quality) is PRESENT when
+    it has at least one graded assertion (passed is not None; quality is present when it
+    ran). Absent pools are excluded from the denominator — never counted as zero.
+  * score = 100 * Σ(weight_p * rate_p) / Σ(weight_p) over PRESENT pools only.
+  * A score is emitted when MIN_GRADED (3) or more assertions were graded in total. Below
+    that the run is genuinely empty: score_status INSUFFICIENT_COVERAGE, score None.
+  * score_confidence says what the number rests on: `high` when graded capability tests
+    outnumber everything else, `medium` when it rests mostly on self-claims and schema,
+    `low` when only three or four assertions were graded, `none` when there is no score.
+The coverage figures beside the score carry the caveat; the score itself is always the
+same arithmetic, and scripts/recompute.py redoes it by hand from the raw assertions.
 """
 from __future__ import annotations
 from typing import Any
 from ..models import Report, Assertion, Kind, AgentIdentity, AgentCards, QualityScores, Severity, CoverageReport
 
 _SEV_ORDER = {Severity.HIGH: 0, Severity.MEDIUM: 1, Severity.LOW: 2, Severity.INFO: 3}
+MIN_GRADED = 3        # fewer graded assertions than this and there is no score at all
 
 
 def _rate(items: list[Assertion]) -> float | None:
@@ -76,25 +82,44 @@ def build(agent_label: str, host: str, mode: str, identity: AgentIdentity, cards
 
     p_beh, n_beh = _graded(behaviour_items)
     p_self, n_self = _graded(by_kind[Kind.SELFCLAIM])
-    if n_beh == 0:
+    p_sch, n_sch = _graded(by_kind[Kind.SCHEMA])
+    n_graded = n_beh + n_self + n_sch          # quality never has a verdict, so it is not "graded"
+    pools_txt = ((f"{p_beh}/{n_beh} capability" if n_beh else "no graded capability test")
+                 + (f", {p_self}/{n_self} self-claim" if n_self else "")
+                 + (f", {p_sch}/{n_sch} schema" if n_sch else "")
+                 + (f", quality {q_score:.2f}" if q_items else ""))
+    if n_graded < MIN_GRADED:
         behavior, score_status = None, "INSUFFICIENT_COVERAGE"
-        score_basis = "no graded capability test: " + _why_no_behaviour(assertions, coverage)
+        score_basis = (f"only {n_graded} assertion(s) graded (fewer than {MIN_GRADED}): "
+                       + _why_no_behaviour(assertions, coverage))
         if n_self:
             score_basis += (f". Its {n_self} self-claim(s) about its own infrastructure were "
                             f"checked directly and {p_self} held")
     else:
-        behavior = round(100 * sum(wt * v for wt, v in parts) / sum(wt for wt, _ in parts))
+        # Renormalised: Σ(w·rate) / Σ(w) over the pools that are PRESENT (see module doc).
+        # A pool with nothing graded is simply not in either sum.
+        num = sum(wt * v for wt, v in parts)
+        den = sum(wt for wt, _ in parts)
+        behavior = round(100 * num / den)
         score_status = "OK"
-        score_basis = (f"{p_beh}/{n_beh} capability"
-                       + (f", {p_self}/{n_self} self-claim" if n_self else "")
-                       + f", {len([a for a in by_kind[Kind.SCHEMA] if a.passed])}/"
-                         f"{len(by_kind[Kind.SCHEMA])} schema, quality {q_score:.2f} (10% blend)")
+        weights_txt = " + ".join(f"{wt:.2f}×{v:.3f}" for wt, v in parts)
+        score_basis = (f"{pools_txt}; score = 100 × ({weights_txt}) / {den:.2f}")
+        if n_beh == 0:
+            score_basis += "; " + _why_no_behaviour(assertions, coverage)
 
-    # How much evidence is under the number. 83 off 3 graded capability tests and 83 off
-    # 30 are not the same claim, and the report says which it is.
-    confidence = "high" if n_beh >= 20 else "medium" if n_beh >= 8 else "low" if n_beh else "none"
+    # What the number rests on. 83 off 30 capability tests and 83 off four checks of the
+    # agent's own DNS are not the same claim, and the report says which it is.
+    if behavior is None:
+        confidence = "none"
+    elif n_graded <= 4:
+        confidence = "low"
+    elif n_beh > n_graded - n_beh:
+        confidence = "high"
+    else:
+        confidence = "medium"
     if behavior is not None:
-        score_basis += f"; evidence: {n_beh} graded capability test(s) — {confidence} confidence"
+        score_basis += (f"; evidence: {n_graded} graded assertion(s), {n_beh} of them capability tests"
+                        f" — {confidence} confidence")
 
     failures = sorted(
         [a for a in assertions if a.passed is False],
@@ -111,7 +136,8 @@ def build(agent_label: str, host: str, mode: str, identity: AgentIdentity, cards
                   "ROTATED": "cert ROTATED since the ANS seal (attestation stale)",
                   "NOT_FOUND": "NOT FOUND"}.get(status, "NOT verified")
     expl = ((f"{p_beh}/{n_beh} capability assertions passed" if n_beh
-             else "NO capability assertions graded — behavior score withheld")
+             else ("NO capability assertions graded — behavior score withheld" if behavior is None
+                   else "NO capability assertions graded — score rests on self-claims and schema"))
             + (f"; {p_self}/{n_self} self-claim(s) verified directly" if n_self else "")
             + (f"; {high} HIGH-severity failure(s)" if high else "")
             + f"; identity {ident_word} via ANS"
@@ -130,6 +156,7 @@ def build(agent_label: str, host: str, mode: str, identity: AgentIdentity, cards
             "oracle_pass_rate": oracle_rate, "selfclaim_pass_rate": self_rate,
             "schema_pass_rate": schema_rate,
             "capability_assertions_graded": n_beh, "selfclaim_assertions_graded": n_self,
+            "graded_total": n_graded,
             "score_confidence": confidence, "evidence_n": n_beh,
             "skipped": sum(1 for a in assertions if a.passed is None and a.kind != Kind.QUALITY),
             "quality_blend": round(q_score, 3), "high_severity_failures": high,

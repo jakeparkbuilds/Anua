@@ -7,13 +7,26 @@ The arithmetic, spelled out so a judge can follow it:
   schema rate      = passed / graded over SCHEMA
   quality          = the quality assertion's score / 100, only if one ran
   score = 100 * Σ(weight_i * rate_i) / Σ(weight_i) over the pools that have a graded item
-  weights: capability .70, self-claim .25, schema .20, quality .10
-If the capability pool has no graded item there is no score (INSUFFICIENT_COVERAGE).
+  weights: report.weights from config.yaml (defaults .70 / .25 / .20 / .10)
+A pool with no graded item is not in either sum. Fewer than 3 graded assertions in
+total (quality has no verdict and does not count) means no score (INSUFFICIENT_COVERAGE).
 """
 import json
 import sys
 
-W = {"capability": .70, "selfclaim": .25, "schema": .20, "quality": .10}
+# The weights come from config.yaml exactly as the pipeline reads them (a key missing
+# from the yaml falls back to the same default builder.py uses).
+def _weights(path="config.yaml"):
+    try:
+        import yaml
+        w = (yaml.safe_load(open(path)) or {}).get("report", {}).get("weights", {}) or {}
+    except Exception:
+        w = {}
+    return {"capability": w.get("oracle", .70), "selfclaim": w.get("selfclaim", .25),
+            "schema": w.get("schema", .20), "quality": w.get("quality", .10)}
+
+
+W = _weights()
 
 
 def recompute(path: str) -> None:
@@ -39,8 +52,8 @@ def recompute(path: str) -> None:
         qs = q[0]["score"] / 100
         print(f"  {'quality':<11} score {q[0]['score']} -> {qs:.3f}  x {W['quality']}   (never a verdict)")
         num += W["quality"] * qs; den += W["quality"]
-    cap_graded = [a for a in pools["capability"] if a["passed"] is not None]
-    if not cap_graded:
+    n_graded = sum(1 for a in A if a["kind"] != "quality" and a["passed"] is not None)
+    if n_graded < 3:
         mine = None
     else:
         mine = round(100 * num / den)

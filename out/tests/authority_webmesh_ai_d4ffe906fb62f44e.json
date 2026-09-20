@@ -1,0 +1,288 @@
+{
+ "written_at": "2026-09-20T05:48:40.867335+00:00",
+ "card_key": "d4ffe906fb62f44e",
+ "assertions": [
+  {
+   "id": "self-web-endpoint-live-authority-webmesh-ai-well",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://authority.webmesh.ai/.well-known/ans/trust-card.json"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Publishes a Trust Card at https://authority.webmesh.ai/.well-known/ans/trust-card.json",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-web-endpoint-live-transparency-ans-godaddy-",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://transparency.ans.godaddy.com/v1/agents/db1eaddb-a1dc-42a4-a76a-f72e5719408f"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Publishes a transparency log entry at https://transparency.ans.godaddy.com/v1/agents/db1eaddb-a1dc-42a4-a76a-f72e5719408f",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-web-endpoint-live-authority-webmesh-ai-mcp",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://authority.webmesh.ai/mcp"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Exposes an MCP server over streamable-HTTP at https://authority.webmesh.ai/mcp",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-web-endpoint-live-authority-webmesh-ai",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://authority.webmesh.ai"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Exposes an A2A endpoint at https://authority.webmesh.ai",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  }
+ ],
+ "coverage": {
+  "claims_found": 21,
+  "verifiable": 5,
+  "schema_only": 16,
+  "unverifiable": 0,
+  "claims": [
+   {
+    "claim_text": "Issues signed AP2 mandates with DPoP key binding (jkt)",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes a protocol/format behavior (AP2 mandate issuance with DPoP jkt binding) checkable by contract, not by an oracle."
+   },
+   {
+    "claim_text": "Requires a compact EdDSA JWS (request_jws) signed by the caller's ANS identity key for mandate issuance",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes an authentication/signature requirement for a protocol interaction, checkable by contract."
+   },
+   {
+    "claim_text": "Binds subject_ans, quote_id, total, currency, merchant_ans, scope_hint, and traveler_dpop_jwk in the mandate request",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes the message format/fields required in a mandate request, checkable by contract."
+   },
+   {
+    "claim_text": "Enforces a freshness window of 300 seconds on mandate requests",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes a protocol enforcement rule (time-based freshness), checkable by contract."
+   },
+   {
+    "claim_text": "Provides replay protection by requiring unique jti per request",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes a protocol security mechanism (jti uniqueness), checkable by contract."
+   },
+   {
+    "claim_text": "Fetches caller JWKS from the caller's ANS JWKS endpoint for signature verification",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes an internal protocol behavior for key resolution, checkable by contract."
+   },
+   {
+    "claim_text": "Returns the current spending policy including max_per_trip, currency, allowed_merchants, and categories",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes the response format/fields of a skill, checkable by contract."
+   },
+   {
+    "claim_text": "Exposes get_policy skill with no authentication required",
+    "source": "skill",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes an authentication requirement (none) for a specific skill endpoint, checkable by contract."
+   },
+   {
+    "claim_text": "Signs HTTP responses using RFC 9421 HTTP Message Signatures with an Ed25519 key",
+    "source": "description",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes a signing protocol applied to the agent's own HTTP responses, checkable by contract/inspection."
+   },
+   {
+    "claim_text": "Presents an ANS Identity Certificate (mutual TLS) during the TLS handshake",
+    "source": "description",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes a mutual TLS protocol behavior of the agent's own deployment, checkable by contract."
+   },
+   {
+    "claim_text": "Publishes a Trust Card at https://authority.webmesh.ai/.well-known/ans/trust-card.json",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "Claims the agent publishes a document at a specific URL on its own domain, verifiable by fetching it."
+   },
+   {
+    "claim_text": "Publishes a transparency log entry at https://transparency.ans.godaddy.com/v1/agents/db1eaddb-a1dc-42a4-a76a-f72e5719408f",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "Claims a specific URL exists and is fetchable; verifiable by probing the URL."
+   },
+   {
+    "claim_text": "Exposes an MCP server over streamable-HTTP at https://authority.webmesh.ai/mcp",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live",
+    "reason": "Claims the agent exposes an endpoint at a specific URL on its own domain."
+   },
+   {
+    "claim_text": "Exposes an A2A endpoint at https://authority.webmesh.ai",
+    "source": "trust_card",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live",
+    "reason": "Claims the agent exposes an A2A endpoint at its root URL."
+   },
+   {
+    "claim_text": "Supports SPIFFE identity with ID spiffe://webmesh.ai/agents/authority",
+    "source": "description",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes an identity protocol (SPIFFE) used by the agent's own deployment, checkable by contract/certificate inspection."
+   },
+   {
+    "claim_text": "Supports WIMSE agent-delegation-chain profile",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes support for a specific protocol profile (WIMSE), checkable by contract."
+   },
+   {
+    "claim_text": "Uses EdDSA as the signing algorithm for WIMSE",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes a cryptographic algorithm choice within a protocol, checkable by contract."
+   },
+   {
+    "claim_text": "Issues denial codes including REQUEST_NOT_SIGNED, BAD_SIGNATURE, STALE_REQUEST, REPLAYED_REQUEST, SUBJECT_MISMATCH, ARGS_MISMATCH, IDENTITY_UNVERIFIED, and INSUFFICIENT_FUNDS",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes the error/response message format the agent returns, checkable by contract."
+   },
+   {
+    "claim_text": "Supports DNS-AID SVCB with DNSSEC and DANE TLSA for identity anchoring",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "dns.dnssec",
+    "reason": "Primarily describes a protocol/identity anchoring mechanism; DNSSEC is partially verifiable but SVCB/DANE TLSA support is a protocol contract claim."
+   },
+   {
+    "claim_text": "Signs outbound requests using Web Bot Auth (RFC 9421 HTTP Message Signatures)",
+    "source": "description",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes a signing protocol applied to the agent's own outbound requests, checkable by contract."
+   },
+   {
+    "claim_text": "Stores jti values per-request for 2x the freshness window to prevent replay",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes an internal implementation detail of a replay-prevention protocol mechanism, checkable by contract."
+   }
+  ],
+  "coverage_ratio": 0.238,
+  "self_claims": 10,
+  "capability_claims": 11,
+  "tests_generated": 4,
+  "selfclaim_tests": 4,
+  "capability_tests": 0,
+  "notes": [
+   "no VERIFIABLE capability claims: no agent-facing tests to generate",
+   "selfclaim_tests skipped: 1 (third-party origin with no path \u2014 nothing about this agent to check)"
+  ]
+ },
+ "notes": [
+  "no VERIFIABLE capability claims: no agent-facing tests to generate",
+  "selfclaim_tests skipped: 1 (third-party origin with no path \u2014 nothing about this agent to check)"
+ ]
+}

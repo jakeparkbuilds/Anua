@@ -1,0 +1,333 @@
+{
+ "written_at": "2026-09-20T05:54:48.160253+00:00",
+ "card_key": "ddb368851067acf8",
+ "assertions": [
+  {
+   "id": "self-web-endpoint-live-supplier-webmesh-ai",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://supplier.webmesh.ai"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Exposes an A2A endpoint at https://supplier.webmesh.ai",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-web-endpoint-live-supplier-webmesh-ai-mcp",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://supplier.webmesh.ai/mcp"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Exposes an MCP server over streamable-HTTP at https://supplier.webmesh.ai/mcp",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-tls-chain-valid-supplier-webmesh-ai",
+   "kind": "selfclaim",
+   "claim": "tls.chain_valid",
+   "input": {
+    "domain": "supplier.webmesh.ai"
+   },
+   "prompt": null,
+   "oracle": "tls.chain_valid",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Presents an ANS Identity Certificate (mutualTLS) during the TLS handshake",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-web-endpoint-live-supplier-webmesh-ai-well-",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://supplier.webmesh.ai/.well-known/ans/trust-card.json"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Publishes a Trust Card at https://supplier.webmesh.ai/.well-known/ans/trust-card.json",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-web-endpoint-live-transparency-ans-godaddy-",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://transparency.ans.godaddy.com/v1/agents/0a1b53d0-487d-4954-880d-842407413caf"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Logs identity to a transparency log at https://transparency.ans.godaddy.com/v1/agents/0a1b53d0-487d-4954-880d-842407413caf",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  }
+ ],
+ "coverage": {
+  "claims_found": 24,
+  "verifiable": 5,
+  "schema_only": 9,
+  "unverifiable": 10,
+  "claims": [
+   {
+    "claim_text": "Issues flight quotes against verified spending mandates",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Describes a business workflow the agent performs; no oracle can independently verify the agent issues quotes against mandates without acting as a caller."
+   },
+   {
+    "claim_text": "Issues flight tickets against verified spending mandates",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Describes a business workflow; no oracle can independently verify ticket issuance against mandates."
+   },
+   {
+    "claim_text": "Verifies mandate signature",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Internal verification behavior; cannot be confirmed by an oracle without acting as a caller with a mandate."
+   },
+   {
+    "claim_text": "Verifies mandate scope",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Internal verification behavior; cannot be confirmed by an oracle without acting as a caller with a mandate."
+   },
+   {
+    "claim_text": "Verifies mandate amount",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Internal verification behavior; cannot be confirmed by an oracle without acting as a caller with a mandate."
+   },
+   {
+    "claim_text": "Verifies mandate audience",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Internal verification behavior; cannot be confirmed by an oracle without acting as a caller with a mandate."
+   },
+   {
+    "claim_text": "Verifies DPoP proof",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "DPoP proof verification is a protocol/auth mechanism (RFC 9449); checkable by contract, not by a content oracle."
+   },
+   {
+    "claim_text": "Submits the traveler's pre-signed EIP-3009 transferWithAuthorization on-chain on Base Sepolia",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "On-chain submission behavior requires acting as a caller; no catalog oracle covers blockchain transaction submission."
+   },
+   {
+    "claim_text": "Does not issue a ticket without on-chain settlement",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Negative behavioral claim about workflow gating; cannot be verified by any catalog oracle."
+   },
+   {
+    "claim_text": "Evidence bundle carries tx_hash and SCITT receipt",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Describes the structure of a response payload; no catalog oracle covers response body content of agent calls."
+   },
+   {
+    "claim_text": "Provides three deterministic flight options via the get_quote skill",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Describes output of a skill invocation; no catalog oracle can invoke the skill and count results."
+   },
+   {
+    "claim_text": "The get_quote skill is x402-gated",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "x402 payment gating is a protocol/payment mechanism; checkable by contract rather than a content oracle."
+   },
+   {
+    "claim_text": "The book_flight skill requires AP2 mandate, DPoP, and EIP-3009 payment_auth",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes auth/payment protocol requirements for a skill; checkable by contract, not by a content oracle."
+   },
+   {
+    "claim_text": "The book_flight skill submits on-chain settlement before issuing a ticket",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Behavioral ordering claim about workflow; no catalog oracle can verify sequencing of on-chain actions."
+   },
+   {
+    "claim_text": "Exposes an A2A endpoint at https://supplier.webmesh.ai",
+    "source": "trust_card",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live",
+    "reason": "Claims the agent serves an endpoint at this URL; web.endpoint_live checks if something is serving there."
+   },
+   {
+    "claim_text": "Exposes an MCP server over streamable-HTTP at https://supplier.webmesh.ai/mcp",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live",
+    "reason": "Claims an MCP endpoint at this URL; web.endpoint_live checks if something is serving there."
+   },
+   {
+    "claim_text": "Presents an ANS Identity Certificate (mutualTLS) during the TLS handshake",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "tls.chain_valid",
+    "reason": "Mutual TLS with a specific certificate type is a protocol/auth claim; catalog TLS oracles only check server-side chain validity, not mTLS or certificate identity type."
+   },
+   {
+    "claim_text": "Signs outbound requests using RFC 9421 HTTP Message Signatures with an Ed25519 key",
+    "source": "description",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "HTTP Message Signatures (RFC 9421) is a protocol/signature mechanism; checkable by contract, not by a content oracle."
+   },
+   {
+    "claim_text": "Publishes a Trust Card at https://supplier.webmesh.ai/.well-known/ans/trust-card.json",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "Claims a document is published at a specific URL; web.fetchable verifies the URL is reachable."
+   },
+   {
+    "claim_text": "Logs identity to a transparency log at https://transparency.ans.godaddy.com/v1/agents/0a1b53d0-487d-4954-880d-842407413caf",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "Claims a log entry exists at a specific URL; web.fetchable verifies the URL is reachable."
+   },
+   {
+    "claim_text": "Supports SPIFFE identity with SPIFFE ID spiffe://webmesh.ai/agents/supplier",
+    "source": "description",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "SPIFFE identity is a protocol/identity framework claim; no catalog oracle covers SPIFFE ID verification."
+   },
+   {
+    "claim_text": "Supports agent discovery of ANS-registered agents",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Describes a capability to discover other agents; no catalog oracle can verify this behavior."
+   },
+   {
+    "claim_text": "Supports live A2A agent interaction",
+    "source": "registry",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Vague capability claim about agent-to-agent interaction; no catalog oracle covers this."
+   },
+   {
+    "claim_text": "Supports agent identity verification using ANS, DNS-AID, and DNSSEC",
+    "source": "registry",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes use of identity verification protocols (ANS, DNS-AID, DNSSEC); checkable by contract/protocol specification rather than a content oracle applied to a caller-supplied input."
+   }
+  ],
+  "coverage_ratio": 0.208,
+  "self_claims": 8,
+  "capability_claims": 16,
+  "tests_generated": 5,
+  "selfclaim_tests": 5,
+  "capability_tests": 0,
+  "notes": [
+   "no VERIFIABLE capability claims: no agent-facing tests to generate"
+  ]
+ },
+ "notes": [
+  "no VERIFIABLE capability claims: no agent-facing tests to generate"
+ ]
+}

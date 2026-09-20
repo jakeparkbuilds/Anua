@@ -1,0 +1,248 @@
+{
+ "written_at": "2026-09-20T06:01:17.628977+00:00",
+ "card_key": "51e3ca5930912f1e",
+ "assertions": [
+  {
+   "id": "self-web-endpoint-live-agentcensus-io-mcp",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://agentcensus.io/mcp"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Exposes an MCP endpoint at https://agentcensus.io/mcp",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-web-endpoint-live-agentcensus-io-well-known",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://agentcensus.io/.well-known/agent-card.json"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Publishes an agent card at https://agentcensus.io/.well-known/agent-card.json",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  }
+ ],
+ "coverage": {
+  "claims_found": 22,
+  "verifiable": 2,
+  "schema_only": 8,
+  "unverifiable": 12,
+  "claims": [
+   {
+    "claim_text": "Provides read-only access to the agentcensus adoption census",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Subjective description of the agent's purpose; no oracle can verify 'read-only access' to a proprietary census dataset."
+   },
+   {
+    "claim_text": "Reports current adoption figures with their denominator (Census headline)",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Depends on proprietary census data nobody can independently compute."
+   },
+   {
+    "claim_text": "Reports adoption of each discovery mechanism over a window",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Depends on proprietary census data nobody can independently compute."
+   },
+   {
+    "claim_text": "Reports errors separately from misses in mechanism adoption statistics",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Depends on proprietary census data nobody can independently compute."
+   },
+   {
+    "claim_text": "Reports which discovery labels publishers actually use",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Depends on proprietary census data nobody can independently compute."
+   },
+   {
+    "claim_text": "Reports the split between discovery label variants that do not sum",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Depends on proprietary census data nobody can independently compute."
+   },
+   {
+    "claim_text": "Looks up what the census has observed for one registrable domain",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Depends on proprietary census data nobody can independently compute."
+   },
+   {
+    "claim_text": "Searches every agent and MCP server the census has discovered, ranked by relevance",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Depends on proprietary census data and relevance ranking nobody can independently verify."
+   },
+   {
+    "claim_text": "Returns what each agent publishes to anyone without authentication",
+    "source": "skill",
+    "about": "self",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Describes behavior conditional on authentication state; no oracle covers this capability claim."
+   },
+   {
+    "claim_text": "Returns what the census observed only to callers with an API key",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Describes access-control behavior on proprietary data; no oracle covers this."
+   },
+   {
+    "claim_text": "Exposes an MCP endpoint at https://agentcensus.io/mcp",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live",
+    "reason": "Checks whether something is serving at the stated URL."
+   },
+   {
+    "claim_text": "Uses JSONRPC protocol binding at protocol version 0.3.0",
+    "source": "description",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Claim about protocol format and version, checkable by contract/spec inspection."
+   },
+   {
+    "claim_text": "Supports STREAMABLE-HTTP transport",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Claim about transport protocol, checkable by contract/spec inspection."
+   },
+   {
+    "claim_text": "Accepts input in text/plain and application/json formats",
+    "source": "description",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Claim about accepted content-type formats, checkable by contract/spec inspection."
+   },
+   {
+    "claim_text": "Returns output in application/json format",
+    "source": "description",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Claim about response content-type format, checkable by contract/spec inspection."
+   },
+   {
+    "claim_text": "Supports optional bearer authentication using an API key with ac_live_ prefix or Cognito access token",
+    "source": "description",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Claim about authentication scheme and token format, checkable by contract/spec inspection."
+   },
+   {
+    "claim_text": "Meters anonymous callers per IP address",
+    "source": "description",
+    "about": "self",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Internal rate-limiting behavior not observable by any external oracle."
+   },
+   {
+    "claim_text": "Meters authenticated callers per organisation",
+    "source": "description",
+    "about": "self",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Internal rate-limiting behavior not observable by any external oracle."
+   },
+   {
+    "claim_text": "Does not support push notifications",
+    "source": "description",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Claim about absence of a protocol feature, checkable by contract/spec inspection."
+   },
+   {
+    "claim_text": "Does not support streaming",
+    "source": "description",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Claim about absence of a protocol feature, checkable by contract/spec inspection."
+   },
+   {
+    "claim_text": "Publishes an agent card at https://agentcensus.io/.well-known/agent-card.json",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "Checks whether the agent card URL is reachable and returns a successful response."
+   },
+   {
+    "claim_text": "Is registered under the ANS name ans://v2.0.0.agentcensus.io",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "ANS registration is a proprietary registry claim not verifiable by any catalog oracle."
+   }
+  ],
+  "coverage_ratio": 0.091,
+  "self_claims": 13,
+  "capability_claims": 9,
+  "tests_generated": 2,
+  "selfclaim_tests": 2,
+  "capability_tests": 0,
+  "notes": [
+   "no VERIFIABLE capability claims: no agent-facing tests to generate"
+  ]
+ },
+ "notes": [
+  "no VERIFIABLE capability claims: no agent-facing tests to generate"
+ ]
+}

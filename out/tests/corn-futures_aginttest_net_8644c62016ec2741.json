@@ -1,0 +1,152 @@
+{
+ "written_at": "2026-09-20T05:25:35.088273+00:00",
+ "card_key": "8644c62016ec2741",
+ "assertions": [
+  {
+   "id": "self-web-endpoint-live-corn-futures-aginttest-ne",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://corn-futures.aginttest.net/"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Operates as an A2A protocol endpoint",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-http-https-ok-corn-futures-aginttest-net",
+   "kind": "selfclaim",
+   "claim": "http.https_ok",
+   "input": {
+    "domain": "corn-futures.aginttest.net"
+   },
+   "prompt": null,
+   "oracle": "http.https_ok",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Is reachable at https://corn-futures.aginttest.net/",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  }
+ ],
+ "coverage": {
+  "claims_found": 10,
+  "verifiable": 3,
+  "schema_only": 3,
+  "unverifiable": 4,
+  "claims": [
+   {
+    "claim_text": "Looks up CME corn futures (ZC=F) prices via Yahoo Finance",
+    "source": "registry",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Claims about the internal data source used (Yahoo Finance) cannot be independently verified by any catalog oracle."
+   },
+   {
+    "claim_text": "Reports current OHLCV data for corn futures",
+    "source": "registry",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Reporting live market data is a capability that depends on external financial data nobody can independently compute via the catalog oracles."
+   },
+   {
+    "claim_text": "Reports price trends for corn futures",
+    "source": "registry",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Price trend reporting is a capability dependent on live financial data not verifiable by any catalog oracle."
+   },
+   {
+    "claim_text": "Reports multi-day price history for corn futures",
+    "source": "registry",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Multi-day price history reporting depends on live financial data not verifiable by any catalog oracle."
+   },
+   {
+    "claim_text": "Exposes a 'Corn Futures Price History' function (corn_futures_history)",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Exposing a named function is a protocol/schema-level claim about the agent's API contract, not directly verifiable by a catalog oracle."
+   },
+   {
+    "claim_text": "Exposes a 'Corn Futures Price Lookup' function (corn_futures_price)",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Exposing a named function is a protocol/schema-level claim about the agent's API contract, not directly verifiable by a catalog oracle."
+   },
+   {
+    "claim_text": "Operates as an A2A protocol endpoint",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live",
+    "reason": "A2A protocol compliance is a schema/protocol claim; endpoint liveness can be checked but protocol conformance cannot be verified by catalog oracles alone."
+   },
+   {
+    "claim_text": "Communicates via JSON-RPC transport",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "JSON-RPC transport is a protocol/message format claim verifiable by contract inspection, not by catalog oracles."
+   },
+   {
+    "claim_text": "Exposes agent metadata at https://corn-futures.aginttest.net/.well-known/agent.json",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "The catalog oracle web.fetchable can verify whether this URL is reachable and returns a non-error response."
+   },
+   {
+    "claim_text": "Is reachable at https://corn-futures.aginttest.net/",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live,http.https_ok",
+    "reason": "Reachability at the given URL is directly verifiable by catalog oracles web.endpoint_live and http.https_ok."
+   }
+  ],
+  "coverage_ratio": 0.3,
+  "self_claims": 6,
+  "capability_claims": 4,
+  "tests_generated": 2,
+  "selfclaim_tests": 2,
+  "capability_tests": 0,
+  "notes": [
+   "no VERIFIABLE capability claims: no agent-facing tests to generate"
+  ]
+ },
+ "notes": [
+  "no VERIFIABLE capability claims: no agent-facing tests to generate"
+ ]
+}

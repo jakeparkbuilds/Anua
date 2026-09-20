@@ -80,7 +80,10 @@ def fetch(host: str, timeout: int, live: bool, registry_entry: dict | None = Non
             protos.add(str(p).lower())
     if agent_card.get("url") or agent_card.get("supportedInterfaces"):
         protos.add("a2a")
-    for e in (agent_card.get("capabilities", {}) or {}).get("extensions", []) or []:
+    caps = agent_card.get("capabilities")
+    # ack-onchain.dev publishes `capabilities` as a LIST; a dead card is a finding, a
+    # traceback is not.
+    for e in (caps.get("extensions", []) if isinstance(caps, dict) else []) or []:
         if isinstance(e, dict) and "modelcontextprotocol" in str(e.get("uri", "")):
             protos.add("mcp")
     if trust_card.get("mcp") or agent_card.get("mcp"):

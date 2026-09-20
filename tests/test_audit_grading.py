@@ -305,20 +305,40 @@ def test_score_carries_its_evidence_count_and_confidence():
     r = build("a", "h", "live", AgentIdentity(host="h"), AgentCards(), [o(1, True), o(2, True), o(3, False)],
               {"oracle": .7, "selfclaim": .25, "schema": .2, "quality": .1}, [])
     assert r.summary["evidence_n"] == 3 and r.summary["score_confidence"] == "low"
-    assert "3 graded capability test(s) — low confidence" in r.score_basis
+    assert "3 graded assertion(s), 3 of them capability tests — low confidence" in r.score_basis
     assert r.behavior_score == round(100 * (2 / 3))   # no quality item ran: it is not in the blend
 
 
 def test_ungraded_assertions_are_in_no_denominator():
     def o(i, passed):
         return Assertion(id=f"o{i}", kind=Kind.ORACLE, claim="tls.expired", input={}, passed=passed)
-    graded = [o(1, True), o(2, False)]
+    graded = [o(1, True), o(2, False), o(6, True)]
     r1 = build("a", "h", "live", AgentIdentity(host="h"), AgentCards(), graded, {}, [])
     r2 = build("a", "h", "live", AgentIdentity(host="h"), AgentCards(), graded + [o(3, None), o(4, None), o(5, None)], {}, [])
-    assert r1.behavior_score == r2.behavior_score and r2.summary["skipped"] == 3
+    assert r1.behavior_score == r2.behavior_score == 67 and r2.summary["skipped"] == 3
+    assert r2.summary["graded_total"] == 3            # ungraded ones are in no count either
 
 
 def test_dnsdoc_evidence_expiry_and_issuer_are_read_structurally():
     raw = json.dumps({"evidence": {"tls": {"reachable": True, "issuer_cn": "WE1", "not_after": "Dec  4 23:29:33 2026 GMT"}}})
     assert adapter.extract(raw, "tls.issuer") == "WE1"
     assert compare("date_close", "2026-12-04", adapter.extract(raw, "tls.not_after"))[0]
+
+
+def test_confidence_names_what_the_score_rests_on():
+    def a(i, kind, passed=True):
+        return Assertion(id=f"{kind.value}{i}", kind=kind, claim="c", input={}, passed=passed)
+    cap = [a(i, Kind.ORACLE) for i in range(10)]
+    own = [a(i, Kind.SELFCLAIM) for i in range(6)] + [a(i, Kind.SCHEMA) for i in range(4)]
+    mk = lambda items: build("a", "h", "live", AgentIdentity(host="h"), AgentCards(), items, {}, [])
+    assert mk(cap + own[:5]).summary["score_confidence"] == "high"       # 10 capability vs 5 other
+    assert mk(cap[:3] + own).summary["score_confidence"] == "medium"     # 3 capability vs 10 other
+    assert mk(own[:4]).summary["score_confidence"] == "low"              # four checks in total
+    assert mk(own[:2]).summary["score_confidence"] == "none"             # no score at all
+
+
+def test_a_missing_pool_is_out_of_the_denominator_not_zero():
+    """Schema 1/1 and quality absent: the score is 100, not 100 × .2/.45."""
+    items = [Assertion(id=f"s{i}", kind=Kind.SCHEMA, claim="c", input={}, passed=True) for i in range(3)]
+    r = build("a", "h", "live", AgentIdentity(host="h"), AgentCards(), items, {"oracle": .7, "selfclaim": .25, "schema": .2, "quality": .1}, [])
+    assert r.behavior_score == 100 and "/ 0.20" in r.score_basis

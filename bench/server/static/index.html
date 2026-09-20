@@ -3,339 +3,319 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ans-bench</title>
+<title>anua</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Mono:wght@400&display=swap">
 <style>
   :root {
-    --bg: #0d1117; --panel: #161b22; --line: #30363d; --fg: #e6edf3; --dim: #8b949e;
-    --green: #3fb950; --amber: #d29922; --red: #f85149; --grey: #6e7681; --blue: #58a6ff;
-    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    --sans: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    --bg: #EEF1EE; --card: #FFFFFF; --ink: #15191A; --mute: #7A8083; --line: #E2E6E2;
+    --brand: #0B6B46; --brand-soft: #E3EEE8; --bad: #C2472F; --bad-soft: #F8E8E4;
+    --neutral-bg: #E9EBE9; --neutral-ink: #4E5658; --na-dot: #D3D7D4; --na-glyph: #6E7472; --skeleton: #E4E8E4;
+    --sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --mono: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.45 var(--sans); }
-  main { max-width: 1400px; margin: 0 auto; padding: 24px 16px 64px; }
-  h1 { font: 700 22px var(--sans); margin: 0; letter-spacing: .02em; }
-  h1 small { color: var(--dim); font-weight: 400; font-size: 14px; margin-left: 12px; }
-  h2 { font: 600 13px var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--dim); margin: 36px 0 10px; }
-  code, .mono, td, .step-detail, .val { font-family: var(--mono); }
-  a { color: var(--blue); }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  body { font-family: var(--sans); font-size: 15px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
+  main { max-width: 660px; margin: 0 auto; padding: 40px 16px 48px; }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
+  [hidden] { display: none !important; }
 
-  /* input */
-  #inputrow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
-  #agent { flex: 1 1 320px; font: 18px var(--mono); padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); color: var(--fg); border-radius: 6px; }
-  button { font: 600 15px var(--sans); padding: 12px 16px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); cursor: pointer; }
-  button:hover { border-color: var(--blue); }
-  button.primary { background: var(--blue); color: #0d1117; border-color: var(--blue); }
-  button.preset { font-family: var(--mono); font-weight: 500; }
-  button.preset .hint { display: block; font: 12px var(--sans); color: var(--dim); }
-  button:disabled { opacity: .5; cursor: wait; }
+  header { margin-bottom: 28px; }
+  .wordmark { display: inline-block; font-size: 34px; font-weight: 500; letter-spacing: -0.04em; line-height: 1; text-decoration: none;
+    cursor: pointer; white-space: nowrap; }
+  body.landing .wordmark { font-size: 52px; }
+  .wordmark .a { color: var(--brand); }
+  .desc { display: block; font-size: 14px; color: var(--mute); margin-top: 8px; }
 
-  /* live run */
-  #steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px 24px; }
-  #steps li { display: grid; grid-template-columns: 28px 1fr; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 17px; }
-  .mark { font-family: var(--mono); font-size: 18px; text-align: center; color: var(--grey); }
-  li.running .mark { color: var(--blue); animation: spin 1.2s linear infinite; }
-  li.done .mark { color: var(--green); }
-  li.warn .mark { color: var(--amber); }
-  li.fail .mark { color: var(--red); }
-  li.pending { color: var(--dim); }
-  .step-detail { display: block; font-size: 13px; color: var(--dim); white-space: pre-wrap; word-break: break-word; }
-  li.fail .step-detail { color: var(--red); }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  #runmeta { color: var(--dim); font-size: 13px; margin-top: 8px; min-height: 1.4em; }
-  #runerr { color: var(--red); font-family: var(--mono); white-space: pre-wrap; margin-top: 8px; }
+  form.input { position: relative; display: flex; align-items: stretch; background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; padding: 6px 6px 6px 16px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+  form.input:focus-within { box-shadow: 0 0 0 2px var(--brand); }
+  form.input input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; font: inherit; font-family: var(--mono);
+    font-size: 15px; color: var(--ink); padding: 8px 0; }
+  form.input input::placeholder { color: var(--mute); }
+  form.input button { border: 0; background: var(--brand); color: #fff; font: inherit; font-weight: 500;
+    padding: 0 18px; border-radius: 8px; cursor: pointer; min-height: 40px; }
+  form.input button[disabled] { opacity: .5; cursor: default; }
 
-  /* verdict strip */
-  #verdict { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
-  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; min-height: 160px; }
-  .panel .k { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
-  .panel .big { font: 700 44px/1.1 var(--mono); margin: 8px 0 6px; word-break: break-word; }
-  .panel .big.small { font-size: 26px; line-height: 1.2; }
-  .panel .sub { font-size: 14px; color: var(--dim); white-space: pre-wrap; }
-  .st-VERIFIED .big { color: var(--green); }
-  .st-PENDING .big { color: var(--amber); }
-  .st-MISMATCH .big { color: var(--red); }
-  .st-NOT_FOUND .big, .st-UNVERIFIED .big { color: var(--grey); }
-  .st-UNVERIFIED .big { color: var(--amber); }
-  .score-ok .big { color: var(--fg); }
-  .score-none .big { color: var(--amber); }
-  #banner { display: none; margin: 12px 0 0; padding: 14px 18px; border-radius: 8px; border: 1px solid var(--amber); background: #2a2210; font-size: 17px; }
-  #banner b { color: var(--amber); }
+  /* landing */
+  #landing { margin-top: 40px; font-size: 16px; line-height: 1.65; }
+  #landing .lead { font-size: 24px; font-weight: 500; letter-spacing: -0.02em; line-height: 1.3; margin: 0 0 26px; }
+  #landing p { margin: 0 0 22px; max-width: 560px; }
+  #landing .try { margin-top: 34px; font-size: 15px; color: var(--mute); }
+  #landing .try button { border: 0; background: none; padding: 0; font: inherit; font-family: var(--mono); font-size: 14px;
+    color: var(--brand); cursor: pointer; }
+  #examples { margin-top: 34px; }
+  #examples h2 { margin: 0 4px 10px; }
+  table.ex { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    overflow: hidden; font-size: 15px; }
+  table.ex th { text-align: left; font-weight: 400; font-size: 13px; color: var(--mute); padding: 10px 16px 8px; border-bottom: 1px solid var(--line); }
+  table.ex td { padding: 11px 16px; border-top: 1px solid var(--line); vertical-align: baseline; }
+  table.ex tr:first-child td { border-top: 0; }
+  table.ex tbody tr { cursor: pointer; }
+  table.ex tbody tr:hover { background: var(--bg); }
+  table.ex td.host { font-family: var(--mono); font-size: 14px; }
+  table.ex td.what { color: var(--mute); }
+  table.ex .score, table.ex th.score { text-align: right; font-family: var(--mono); font-size: 17px; white-space: nowrap; }
+  table.ex td.score.none { color: var(--mute); }
 
-  /* badges */
-  .badge { display: inline-block; font: 600 11px/1 var(--mono); letter-spacing: .06em; padding: 4px 7px; border-radius: 4px; border: 1px solid; white-space: nowrap; }
-  .b-self { color: #c9a5ff; border-color: #6e40c9; background: #1d1233; }
-  .b-cap { color: #79c0ff; border-color: #1f6feb; background: #0d2340; }
-  .b-unv { color: var(--amber); border-color: var(--amber); background: #2a2210; }
-  .b-schema { color: var(--dim); border-color: var(--line); white-space: normal; line-height: 1.3; word-break: break-all; }
-  .b-gen { color: var(--dim); border-color: var(--line); font-weight: 500; }
-  .b-pass { color: var(--green); border-color: var(--green); background: #0f2a17; }
-  .b-fail { color: #fff; border-color: var(--red); background: var(--red); }
-  .b-skip { color: var(--dim); border-color: var(--grey); background: #1c2128; }
-  .b-noverdict { color: var(--dim); border-color: var(--grey); background: #1c2128; }
-  .sev-HIGH { color: var(--red); font-weight: 700; }
-  .sev-MEDIUM { color: var(--amber); }
-  .sev-LOW, .sev-INFO { color: var(--dim); }
+  /* progress checklist */
+  #progress { margin-top: 26px; }
+  .steps { list-style: none; margin: 0 0 10px; padding: 0; }
+  .steps li { display: grid; grid-template-columns: 18px 1fr auto; gap: 0 10px; align-items: baseline; padding: 3px 0; font-size: 14px; color: var(--mute); }
+  .steps li .m { font-family: var(--mono); text-align: center; }
+  .steps li.done { color: var(--ink); }
+  .steps li.done .m { color: var(--brand); }
+  .steps li.warn .m { color: var(--na-glyph); }
+  .steps li.fail .m { color: var(--bad); }
+  .steps li.now { color: var(--ink); }
+  .steps li.now .m { color: var(--brand); animation: dot 1.6s ease-in-out infinite; }
+  @keyframes dot { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+  .steps li .d { grid-column: 2; font-size: 12px; color: var(--mute); }
+  .steps li .t { font-family: var(--mono); font-size: 13px; color: var(--mute); font-variant-numeric: tabular-nums; }
+  .rule { height: 2px; background: var(--line); border-radius: 999px; overflow: hidden; }
+  .rule i { display: block; height: 100%; width: 0; background: var(--brand); transition: width .3s ease; }
+  #progress.error .steps { display: none; }
+  #progress.error .rule { display: none; }
+  #progress .err { font-size: 14px; color: var(--ink); }
 
-  /* claims */
-  #claims { display: grid; gap: 8px; }
-  .claim { display: grid; grid-template-columns: 150px 1fr; gap: 6px 14px; padding: 12px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; align-items: start; }
-  .claim .badges { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
-  .claim .text { font-size: 17px; }
-  .claim .what { font-size: 14px; color: var(--dim); margin-top: 4px; }
-  .claim .what .val { color: var(--fg); }
-  .claim.has-fail { border-left: 4px solid var(--red); }
-  .claim.all-pass { border-left: 4px solid var(--green); }
-  .claim.unv { border-left: 4px solid var(--amber); }
-  .claim.skip { border-left: 4px solid var(--grey); }
-  .claim .why { color: var(--amber); }
-  .claimsum { color: var(--dim); font-size: 14px; margin: 0 0 12px; }
-  .claimsum b { color: var(--fg); }
-  .grp { font: 600 12px var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); margin: 14px 0 2px; }
+  #results, #skeleton { margin-top: 22px; }
+  #results.enter { animation: rise .5s ease both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
-  /* table */
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { text-align: left; font: 600 11px var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); padding: 8px 8px; border-bottom: 2px solid var(--line); vertical-align: bottom; }
-  th .sub { display: block; letter-spacing: 0; text-transform: none; font-weight: 400; }
-  th.ours { color: var(--green); }
-  td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; word-break: break-word; max-width: 360px; }
-  tr.fail td { background: #1f1214; }
-  tr.skip td, tr.skip td .val { color: var(--dim); background: #13161b; }
-  td.ev { color: var(--dim); font-size: 12px; }
-  .ellip { max-height: 5.8em; overflow: hidden; }
-  details.rawjson summary { cursor: pointer; color: var(--dim); }
-  pre#raw { font-size: 12px; background: var(--panel); border: 1px solid var(--line); padding: 12px; overflow: auto; max-height: 70vh; }
-  .hidden { display: none; }
-  @media (max-width: 700px) { .claim { grid-template-columns: 1fr; } .panel .big { font-size: 34px; } }
+  .numbers { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line);
+    border-radius: 12px; overflow: hidden; }
+  .numbers > div { background: var(--card); padding: 26px 22px 22px; }
+  .big { font-size: 64px; font-weight: 500; letter-spacing: -0.045em; line-height: 1; height: 64px; font-variant-numeric: tabular-nums; }
+  .big.none { color: var(--mute); }
+  .big small { font-size: 26px; color: var(--mute); letter-spacing: -0.02em; margin-left: 2px; }
+  .label { font-size: 13px; color: var(--mute); margin-top: 10px; min-height: 19px; }
+  .caveat { font-size: 13px; color: var(--mute); margin-top: 4px; }
+
+  .identity { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 14px 4px 0; font-size: 13px; color: var(--mute); min-height: 24px; }
+  .identity .extra { flex-basis: 100%; }
+  .pill { display: inline-block; padding: 3px 11px; border-radius: 999px; font-size: 13px; line-height: 1.4; white-space: nowrap;
+    background: var(--neutral-bg); color: var(--neutral-ink); }
+  .pill.ok { background: var(--brand-soft); color: var(--brand); }
+  .pill.bad { background: var(--bad-soft); color: var(--bad); }
+
+  h2 { font-size: 13.5px; font-weight: 400; color: var(--mute); margin: 30px 4px 10px; }
+  .claims + h2 { margin-top: 22px; }
+  .claims { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .claim { display: grid; grid-template-columns: 22px 1fr auto; gap: 12px; align-items: baseline; padding: 12px 16px;
+    border-top: 1px solid var(--line); font-size: 15px; }
+  .claim:first-child { border-top: 0; }
+  .claim .mark { font-family: var(--mono); text-align: center; }
+  .claim .mark.ok { color: var(--brand); }
+  .claim .mark.bad { color: var(--bad); }
+  .claim .mark.na { color: var(--na-glyph); }
+  .claim .text { overflow-wrap: anywhere; }
+  .claim .count { font-family: var(--mono); font-size: 13px; color: var(--mute); white-space: nowrap; }
+  .claim .count.ok { color: var(--brand); }
+  .claim .count.bad { color: var(--bad); }
+  .claim.empty { display: block; color: var(--mute); font-size: 13px; }
+
+  details { margin-top: 12px; }
+  details summary { cursor: pointer; font-size: 15px; padding: 8px 4px; list-style: none; }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::before { content: "▸"; display: inline-block; width: 18px; color: var(--mute); }
+  details[open] summary::before { content: "▾"; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .note { font-size: 13px; color: var(--mute); margin: 0 0 12px; }
+
+  .tablewrap { overflow-x: auto; }
+  table.checks { width: 100%; border-collapse: collapse; table-layout: fixed; font-family: var(--mono); font-size: 12.5px; }
+  col.c-name { width: 40%; } col.c-val { width: 20%; } col.c-tag { width: 20%; }
+  table.checks th { text-align: left; font-family: var(--sans); font-weight: 400; font-size: 13px; color: var(--mute); padding: 4px 8px 8px 0; }
+  table.checks td { padding: 8px 8px 2px 0; vertical-align: top; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+  td.name { font-family: var(--sans); font-size: 13.5px; overflow-wrap: break-word; }
+  td.name .sub { display: block; font-family: var(--mono); color: var(--mute); font-size: 12px; margin-top: 2px; }
+  td.verdict { white-space: nowrap; padding-right: 0; }
+  tr.ev td { border-top: 0; padding: 0 0 10px; color: var(--mute); font-family: var(--sans); font-size: 12.5px; }
+  .tag { display: inline-block; padding: 1px 9px; border-radius: 999px; font-family: var(--sans); font-size: 12.5px;
+    background: var(--neutral-bg); color: var(--neutral-ink); }
+  .tag.ok { background: var(--brand-soft); color: var(--brand); }
+  .tag.bad { background: var(--bad-soft); color: var(--bad); }
+
+  .log { font-family: var(--mono); font-size: 12.5px; color: var(--mute); margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
+  .log b { font-weight: 400; color: var(--ink); }
+  .log .bad { color: var(--bad); }
+
+  /* skeletons: same boxes as the real layout, so nothing moves when data lands */
+  .sk { background: var(--skeleton); border-radius: 6px; animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+  #skeleton .big .sk { height: 64px; width: 120px; }
+  #skeleton .label .sk { height: 13px; width: 90px; margin-top: 3px; }
+  #skeleton .identity .sk.pill { width: 130px; height: 24px; border-radius: 999px; }
+  #skeleton .identity .sk.line { width: 55%; height: 13px; }
+  #skeleton h2 .sk { display: inline-block; height: 13px; width: 150px; }
+  #skeleton .claim .sk { height: 15px; }
+  #skeleton .claim .mark { visibility: hidden; }
+  #skeleton .claim:nth-child(odd) .sk { width: 60%; }
+  #skeleton .claim:nth-child(even) .sk { width: 80%; }
+  #skeleton summary { color: var(--mute); cursor: default; }
+
+  @media (max-width: 640px) {
+    table.checks { min-width: 560px; }
+  }
+  @media (max-width: 520px) {
+    main { padding-top: 28px; }
+    .big { font-size: 52px; height: 52px; }
+    #skeleton .big .sk { height: 52px; }
+    .numbers > div { padding: 20px 16px 16px; }
+    #landing .lead { font-size: 22px; }
+    table.ex td.what { display: none; } table.ex th.what { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .rule i { transition: none; }
+    #results.enter { animation: none; }
+    .sk { animation: none; }
+    .steps li.now .m { animation: none; }
+  }
 </style>
 </head>
-<body>
+<body class="landing">
 <main>
-  <h1>ans-bench <small>verified identity, measured competence — oracle-graded, never LLM-judged</small></h1>
+  <header>
+    <a class="wordmark" id="home" href="/">anu<span class="a">a</span></a>
+    <span class="desc">agent benchmark</span>
+  </header>
 
-  <form id="inputrow" autocomplete="off">
-    <input id="agent" placeholder="agent host or ans:// name" spellcheck="false">
-    <button class="primary" id="runbtn" type="submit">Benchmark</button>
+  <form class="input" id="form" autocomplete="off">
+    <input id="host" type="text" list="hosts" placeholder="Agent name or ANS address" spellcheck="false" aria-label="Agent name or ANS address">
+    <datalist id="hosts"></datalist>
+    <button type="submit" id="run">Run</button>
   </form>
-  <div id="presets" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-    <button class="preset" type="button" data-host="dnsdoc.webmesh.ai">dnsdoc.webmesh.ai<span class="hint">scored — with a real failure</span></button>
-    <button class="preset" type="button" data-host="impact.webmesh.ai">impact.webmesh.ai<span class="hint">unscorable — nothing it claims is checkable</span></button>
-    <button class="preset" type="button" data-host="seo.webmesh.ai">seo.webmesh.ai<span class="hint">refuses to be tested</span></button>
-    <button class="preset" type="button" data-host="anuabot.vip">anuabot.vip<span class="hint">ourselves</span></button>
-  </div>
 
-  <section id="run" class="hidden">
-    <h2>Live run <span id="runhost" class="mono" style="text-transform:none;letter-spacing:0;color:var(--fg)"></span></h2>
-    <ul id="steps"></ul>
-    <div id="runmeta"></div>
-    <div id="runerr"></div>
+  <section id="landing" hidden>
+    <p class="lead">Anua benchmarks AI agents registered with ANS.</p>
+    <p>ANS proves an agent's identity, not its ability. Agents declare what they can do when they register, and nothing checks whether it's true.</p>
+    <p>Anua reads what an agent says it can do, writes tests for those specific claims, and grades the answers against measurements it takes itself.</p>
+    <div id="examples" hidden>
+      <h2>Agents already benchmarked</h2>
+      <table class="ex">
+        <thead><tr><th>Agent</th><th class="what">What it does</th><th class="score">Score</th></tr></thead>
+        <tbody id="examples-body"></tbody>
+      </table>
+    </div>
+    <p class="try" id="try" hidden></p>
   </section>
 
-  <section id="result" class="hidden">
-    <h2>Verdict</h2>
-    <div id="verdict">
-      <div class="panel" id="p-ident"><div class="k">Identity</div><div class="big">—</div><div class="sub"></div></div>
-      <div class="panel" id="p-score"><div class="k">Behavior score</div><div class="big">—</div><div class="sub"></div></div>
-      <div class="panel" id="p-cov"><div class="k">Coverage</div><div class="big">—</div><div class="sub"></div></div>
-    </div>
-    <div id="banner"></div>
+  <div id="progress" hidden>
+    <ul class="steps" id="steps"></ul>
+    <div class="rule"><i id="fill"></i></div>
+    <div class="err" id="err" hidden></div>
+  </div>
 
-    <h2>What it claims, and what we found</h2>
-    <p class="claimsum" id="claimsum"></p>
+  <section id="skeleton" hidden aria-hidden="true">
+    <div class="numbers">
+      <div><div class="big"><div class="sk"></div></div><div class="label"><div class="sk"></div></div></div>
+      <div><div class="big"><div class="sk"></div></div><div class="label"><div class="sk"></div></div></div>
+    </div>
+    <div class="identity"><span class="sk pill"></span><span class="sk line"></span></div>
+    <h2><span class="sk"></span></h2>
+    <div class="claims">
+      <div class="claim"><span class="mark">–</span><span class="sk"></span></div>
+      <div class="claim"><span class="mark">–</span><span class="sk"></span></div>
+      <div class="claim"><span class="mark">–</span><span class="sk"></span></div>
+      <div class="claim"><span class="mark">–</span><span class="sk"></span></div>
+      <div class="claim"><span class="mark">–</span><span class="sk"></span></div>
+      <div class="claim"><span class="mark">–</span><span class="sk"></span></div>
+    </div>
+    <details><summary>Every check</summary></details>
+    <details><summary>Run log</summary></details>
+  </section>
+
+  <section id="results" hidden>
+    <div class="numbers">
+      <div>
+        <div class="big" id="score"></div>
+        <div class="label" id="score-label"></div>
+        <div class="caveat" id="caveat" hidden></div>
+      </div>
+      <div>
+        <div class="big" id="coverage"></div>
+        <div class="label">claims checked</div>
+      </div>
+    </div>
+
+    <div class="identity" id="identity"></div>
+
     <div id="claims"></div>
 
-    <h2>Every assertion</h2>
-    <p class="claimsum">Failures first, HIGH severity at the top. <b>Expected</b> is ground truth we computed ourselves from DNS, TLS, RDAP and HTTP oracles before the agent was asked. <span class="badge b-skip">SKIPPED</span> means <i>we</i> could not compute ground truth or reach the agent — that is our problem, and it never counts against the agent.</p>
-    <div style="overflow-x:auto"><table id="atable">
-      <thead><tr>
-        <th>Test</th><th>Target</th>
-        <th class="ours">Expected<span class="sub">our oracle's ground truth</span></th>
-        <th>Agent said<span class="sub">extracted from its answer</span></th>
-        <th>Verdict</th><th>Evidence</th>
-      </tr></thead>
-      <tbody></tbody>
-    </table></div>
+    <details id="checks">
+      <summary>Every check</summary>
+      <div class="panel">
+        <p class="note">The measured column is Anua's own reading of DNS, TLS, RDAP and HTTP, taken before the agent was asked.</p>
+        <div class="tablewrap">
+          <table class="checks">
+            <colgroup><col class="c-name"><col class="c-val"><col class="c-val"><col class="c-tag"></colgroup>
+            <thead><tr><th>Check</th><th>Measured</th><th>It said</th><th></th></tr></thead>
+            <tbody id="checks-body"></tbody>
+          </table>
+        </div>
+        <p class="note" id="basis" style="margin:12px 0 0" hidden></p>
+      </div>
+    </details>
 
-    <h2>Raw report</h2>
-    <details class="rawjson"><summary>Full JSON</summary><pre id="raw"></pre></details>
+    <details id="runlog">
+      <summary>Run log</summary>
+      <div class="panel"><pre class="log" id="log"></pre></div>
+    </details>
   </section>
 </main>
 
 <script>
 (() => {
-  const $ = s => document.querySelector(s);
-  const STEPS = [
-    ["registry", "Discovered in ANS registry"], ["tl", "Transparency log entry found"],
-    ["fingerprint", "Certificate fingerprint matched"], ["card", "Read agent card"],
-    ["tests", "Generating tests"], ["run", "Running assertions"]];
-  const MARK = { pending: "○", running: "⟳", done: "✓", warn: "!", fail: "✗" };
-  let es = null, current = null;
-
-  // ---- helpers ------------------------------------------------------------------
-  const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const fmt = v => v === null || v === undefined ? "—" : (typeof v === "string" ? v : JSON.stringify(v));
-  const short = (v, n = 90) => { const s = fmt(v); return s.length > n ? s.slice(0, n) + "…" : s; };
-  const hostOf = a => {
-    a = a.trim().replace(/^ans:\/\/v?[\d.]*\.?/, "").replace(/^https?:\/\//, "").split("/")[0];
-    return a;
+  // ---- example hosts: only the plain-text fallback when /api/examples is unavailable ----
+  const EXAMPLES = [
+    "dnsdoc.webmesh.ai",
+    "impact.webmesh.ai",
+    "seo.webmesh.ai",
+    "anuabot.vip",
+  ];
+  // hand-written, four to six words each; never the card's own description
+  const WHAT = {
+    "dnsdoc.webmesh.ai": "Diagnoses DNS and TLS problems",
+    "impact.webmesh.ai": "Rates domain disruption risk",
+    "seo.webmesh.ai": "Analyses a site's SEO",
+    "anuabot.vip": "Benchmarks other agents",
+    "agent.webmesh.ai": "Interrogates other agents",
+    "auditor.webmesh.ai": "Audits transactions from evidence",
+    "authority.webmesh.ai": "Approves spending against policy",
+    "supplier.webmesh.ai": "Quotes and sells flights",
+    "rogue-supplier.webmesh.ai": "Sells flights without checks",
+    "buyer.agentvouch.us": "Pays suppliers it has verified",
+    "supplier.agentvouch.us": "Quotes parts for buyers",
+    "ack-onchain.dev": "Scores agent reputation on-chain",
+    "agentcensus.dev": "Reports agent adoption figures",
+    "agentcensus.io": "Reports agent adoption figures",
+    "caller.batradar.club": "Phones people in emergencies",
+    "searchopti.cloud": "Advises on SEO",
   };
-  const target = a => { const i = a.input || {}; return i.domain || i.url || i.host || Object.values(i)[0] || ""; };
+
+  const STEPS = ["registry", "tl", "fingerprint", "card", "tests", "run"];
+  const DOING = { registry: "Finding it", tl: "Checking its record", fingerprint: "Checking its certificate",
+                  card: "Reading its claims", tests: "Writing tests", run: "Running tests" };
+  const DID = { registry: "Found it", tl: "Checked its record", fingerprint: "Checked its certificate",
+                card: "Read its claims", tests: "Wrote tests", run: "Ran tests" };
+  const MIN_PROGRESS_MS = 600;
+  const MIN_SKELETON_MS = 250;
+  const CREEP_TAU_S = 7;                                  // eases toward the next boundary over ~20s
+  const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const Q = new URLSearchParams(location.search);
+  const DEBUG = Q.get("debug") === "1";                  // raw payload on screen; never linked from the UI
+  const FORCE_POLL = Q.get("transport") === "poll";     // skips SSE, for a proxy that buffers it
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const SEV = { HIGH: 0, MEDIUM: 1, LOW: 2, INFO: 3 };
+  const sev = a => SEV[a.severity] ?? 4;
 
-  // ---- steps --------------------------------------------------------------------
-  function resetSteps(host) {
-    $("#run").classList.remove("hidden"); $("#result").classList.add("hidden");
-    $("#runhost").textContent = host; $("#runmeta").textContent = ""; $("#runerr").textContent = "";
-    $("#steps").innerHTML = STEPS.map(([k, l]) =>
-      `<li id="st-${k}" class="pending"><span class="mark">${MARK.pending}</span><span><span class="lbl">${l}</span><span class="step-detail"></span></span></li>`).join("");
-  }
-  function tick(s) {
-    const li = $("#st-" + s.step); if (!li) return;
-    li.className = s.status; li.querySelector(".mark").textContent = MARK[s.status] || "•";
-    li.querySelector(".step-detail").textContent = s.detail || "";
-  }
-  function stepsFromReport(r) {              // fallback when SSE is unavailable: a static checklist
-    const id = r.identity || {}, cov = r.coverage;
-    tick({ step: "registry", status: id.registry_found ? "done" : "warn", detail: id.ans_name || (id.registry_found ? "found" : "not in registry search") });
-    tick({ step: "tl", status: id.tl_entry_found ? "done" : "warn", detail: id.tl_entry_found ? "agentId " + id.ans_id : "no transparency-log entry" });
-    tick({ step: "fingerprint", status: id.fingerprint_match === true ? "done" : id.fingerprint_match === false ? "fail" : "warn",
-           detail: id.fingerprint_match === true ? "live = sealed" : id.fingerprint_match === false ? "MISMATCH live ≠ sealed"
-             : id.tl_server_fingerprint && !id.live_server_fingerprint ? "TLS handshake failed — sealed certificate never compared"
-             : id.tl_entry_found && !id.tl_server_fingerprint ? "certificate not yet sealed — PENDING" : "no sealed baseline" });
-    const ce = (r.cards || {}).card_error;
-    tick({ step: "card", status: ce ? "fail" : "done", detail: (ce ? ce + " — " : "") + (cov ? `${cov.claims_found} claims: ${cov.self_claims} self / ${cov.capability_claims} capability, ${cov.unverifiable} unverifiable` : "") });
-    tick({ step: "tests", status: "done", detail: cov ? `${cov.capability_tests} capability tests + ${cov.selfclaim_tests} self-claim checks` : "regression suite" });
-    tick({ step: "run", status: "done", detail: `${r.assertions.length}/${r.assertions.length}` });
-  }
-
-  // ---- run ----------------------------------------------------------------------
-  function start(agent) {
-    const host = hostOf(agent); if (!host) return;
-    $("#agent").value = host; current = host;
-    if (es) { es.close(); es = null; }
-    resetSteps(host); setBusy(true);
-    let gotDone = false;
-    try {
-      es = new EventSource(`/api/stream/${encodeURIComponent(host)}?suite=generated`);
-    } catch (e) { return poll(host); }
-    es.addEventListener("step", e => tick(JSON.parse(e.data)));
-    es.addEventListener("done", e => { gotDone = true; es.close(); render(JSON.parse(e.data)); });
-    es.addEventListener("error", e => {
-      if (e.data) { gotDone = true; es.close(); fail(JSON.parse(e.data).message); }
-    });
-    es.onerror = () => {                     // transport error (not our named error event)
-      if (gotDone) return;
-      es.close(); es = null;
-      $("#runmeta").textContent = "stream unavailable — polling instead";
-      poll(host);
-    };
-  }
-  async function poll(host) {
-    STEPS.forEach(([k]) => tick({ step: k, status: "running", detail: "" }));
-    try {
-      const r = await fetch("/api/benchmark", { method: "POST", headers: { "content-type": "application/json" },
-                                                body: JSON.stringify({ agent: host, suite: "generated", force: false }) });
-      const body = await r.json();
-      if (!r.ok) return fail(body.detail || JSON.stringify(body));
-      stepsFromReport(body); render(body);
-    } catch (e) { fail(String(e)); }
-  }
-  function fail(msg) { setBusy(false); $("#runerr").textContent = msg; }
-  function setBusy(b) { document.querySelectorAll("button").forEach(x => x.disabled = b); }
-
-  // ---- render -------------------------------------------------------------------
-  function render(r) {
-    setBusy(false);
-    $("#runmeta").textContent = (r.cached ? `cached — this run was made at ${r.run_at}` : `fresh run — ${r.run_at}`) +
-      ` · suite ${r.suite} · ${r.assertions.length} assertions`;
-    $("#result").classList.remove("hidden");
-    renderVerdict(r); renderClaims(r); renderTable(r);
-    $("#raw").textContent = JSON.stringify(r, null, 2);
-    if (!r.cached) stepsFromReportIfMissing(r);
-  }
-  function stepsFromReportIfMissing(r) {
-    if ([...document.querySelectorAll("#steps li")].some(li => li.classList.contains("pending"))) stepsFromReport(r);
-  }
-
-  const IDENT = {
-    VERIFIED:   ["VERIFIED", "registry entry + transparency log + live TLS fingerprint all agree"],
-    PENDING:    ["PENDING", "registered; certificate not yet sealed in the transparency log — validation in progress, not a failure"],
-    MISMATCH:   ["MISMATCH", "live certificate fingerprint differs from the sealed one — this is the alarm"],
-    NOT_FOUND:  ["NOT FOUND", "no ANS registry entry for this host"],
-    UNVERIFIED: ["UNVERIFIED", "could not complete verification"],
-  };
-  function renderVerdict(r) {
-    const id = r.identity || {}, st = id.status || "UNVERIFIED";
-    const p = $("#p-ident"); p.className = "panel st-" + st;
-    const [word, why] = IDENT[st] || [st, ""];
-    p.querySelector(".big").textContent = word;
-    const bits = [why];
-    if (id.ans_name) bits.push(id.ans_name);
-    if (id.tl_entry_found && id.tl_server_fingerprint && st === "UNVERIFIED") bits.push("registered and sealed, but the host did not complete a TLS handshake");
-    (id.notes || []).forEach(n => bits.push(n));
-    p.querySelector(".sub").textContent = bits.filter(Boolean).join("\n");
-
-    const s = $("#p-score"), sum = r.summary || {};
-    if (r.score_status === "OK" && r.behavior_score !== null) {
-      s.className = "panel score-ok";
-      s.querySelector(".big").className = "big"; s.querySelector(".big").textContent = r.behavior_score;
-      s.querySelector(".sub").textContent = `${r.score_basis}\n${sum.high_severity_failures || 0} HIGH-severity failure(s)`;
-    } else {
-      s.className = "panel score-none";
-      s.querySelector(".big").className = "big small"; s.querySelector(".big").textContent = "INSUFFICIENT COVERAGE";
-      s.querySelector(".sub").textContent = r.score_basis || "no behavior evidence — no number";
-    }
-
-    const c = $("#p-cov"), cov = r.coverage;
-    c.className = "panel";
-    if (cov) {
-      c.querySelector(".big").textContent = `${cov.verifiable} / ${cov.claims_found}`;
-      c.querySelector(".sub").textContent = `declared claims we can check independently\n${cov.self_claims} about its own infrastructure · ${cov.capability_claims} about what it does · ${cov.unverifiable} unverifiable by anyone`;
-    } else {
-      c.querySelector(".big").textContent = "—";
-      c.querySelector(".sub").textContent = "regression suite: hand-written tests, no claims read";
-    }
-
-    // declined / unreachable banner: the endpoint.reachable assertion carries the reason
-    const b = $("#banner"); b.style.display = "none"; b.innerHTML = "";
-    const reach = r.assertions.find(a => a.claim === "endpoint.reachable");
-    if (reach && reach.passed === false && (reach.error || "").startsWith("agent unavailable")) {
-      const why = reach.error.replace("agent unavailable: ", "");
-      const declined = /402|401|403/.test(why);
-      b.innerHTML = declined
-        ? `<b>Declined to be benchmarked.</b> The agent answered <span class="mono">${esc(why)}</span>. That is its right — but it means nothing about its competence could be measured, so no score is reported. ${(r.cards || {}).card_error ? "" : "Its self-claims were still checked directly."}`
-        : `<b>Endpoint not reachable.</b> <span class="mono">${esc(why)}</span>. The agent could not be asked anything; only what it says about itself could be checked.`;
-      b.style.display = "block";
-    }
-  }
-
-  function renderClaims(r) {
-    const cov = r.coverage, box = $("#claims"), sum = $("#claimsum");
-    box.innerHTML = "";
-    if (!cov) { sum.textContent = "Regression suite — no claims were read from the cards."; return; }
-    const byOracle = attribute(r.assertions, cov.claims);
-    const fails = r.assertions.filter(a => a.passed === false).length;
-    sum.innerHTML = `<b>${cov.claims_found}</b> claims read from its agent card, trust card and registry entry. ` +
-      `<b>${cov.self_claims}</b> are about its own infrastructure and were checked directly without asking it. ` +
-      `<b>${cov.capability_claims}</b> are about what it does for a caller; <b>${cov.capability_tests}</b> tests were written for those. ` +
-      `<b>${cov.unverifiable}</b> cannot be verified by anyone.` + ((r.cards || {}).card_error ? ` <span class="why">Its agent card could not be fetched; these claims come from what it registered with ANS.</span>` : "");
-    const groups = [["Self-claims — about its own infrastructure (checked directly, agent never asked)", c => c.about === "self"],
-                    ["Capability claims — about what it does for a caller (agent asked, answer graded against an oracle)", c => c.about !== "self"]];
-    for (const [title, pick] of groups) {
-      const cs = cov.claims.filter(pick); if (!cs.length) continue;
-      const h = document.createElement("div"); h.className = "grp"; h.textContent = title; box.appendChild(h);
-      cs.sort((a, b) => rank(a) - rank(b)).forEach(c => box.appendChild(claimRow(c, byOracle)));
-    }
-    function rank(c) {
-      const t = byOracle.get(c) || [];
-      if (t.some(a => a.passed === false)) return 0;
-      if (c.verifiability === "UNVERIFIABLE") return 2;
-      return 1;
-    }
-  }
-  // Which tests belong to which claim. A test is attributed by its target when the claim
-  // names that URL/host (self-claims about specific URLs); otherwise by oracle key, but a
-  // test whose target some claim names is never also credited to a claim that does not.
+  // ---- the join rule: which tests belong to which claim (unchanged from the previous page)
+  const target = a => { const i = a.input || {}; return i.domain || i.url || i.host || Object.values(i)[0] || ""; };
   function attribute(assertions, claims) {
     const norm = s => String(s || "").toLowerCase().replace(/\/+$/, "");
     const keysOf = c => (c.oracle_key || "").split(",").map(x => x.trim()).filter(Boolean);
@@ -360,68 +340,532 @@
     }
     return out;
   }
-  function claimRow(c, byOracle) {
-    const isSelf = c.about === "self";
-    const tests = byOracle.get(c) || [];
-    const d = document.createElement("div");
-    const badges = [`<span class="badge ${isSelf ? "b-self" : "b-cap"}">${isSelf ? "SELF-CLAIM" : "CAPABILITY"}</span>`];
-    let cls = "claim", what = "";
-    if (c.verifiability === "UNVERIFIABLE") {
-      badges.push(`<span class="badge b-unv">UNVERIFIABLE</span>`); cls += " unv";
-      what = `<span class="why">${esc(c.reason)}</span>`;
-    } else if (c.verifiability === "SCHEMA_ONLY") {
-      badges.push(`<span class="badge b-schema">SCHEMA ONLY</span>`); cls += " skip";
-      what = esc(c.reason || "checkable only as contract / reachability / drift");
-    } else if (!tests.length) {
-      badges.push(`<span class="badge b-schema">${esc(c.oracle_key)}</span>`); cls += " skip";
-      what = `oracle <span class="val">${esc(c.oracle_key)}</span> exists but no test was written for this claim (batch limit, or no checkable target)`;
+
+  // ---- reading the payload ---------------------------------------------------------
+  const errs = r => (r.assertions || []).map(a => a.error || "");
+  const declined = r => errs(r).some(e => /HTTP 402|authentication required/i.test(e));
+  const unreachable = r => errs(r).some(e => /connection failed|timed out/i.test(e));
+  const isSkipped = a => /^SKIPPED —/.test(a.evidence || "");
+  const isNoVerdict = a => /^NO VERDICT —/.test(a.evidence || "");
+  const hasScore = r => r.score_status === "OK" && typeof r.behavior_score === "number";
+
+  function caveat(r) {
+    const noCapability = !((r.summary || {}).evidence_n > 0);      // a stray timeout is not "unreachable"
+    if (noCapability && declined(r)) return "It charged for access, so only its own setup could be checked.";
+    if (noCapability && unreachable(r)) return "We couldn't reach it, so only its records were checked.";
+    const c = (r.summary || {}).score_confidence;
+    if (hasScore(r) && c === "medium") return "Mostly from claims about its own setup.";
+    if (hasScore(r) && c === "low") return "Based on only a few checks.";
+    return "";
+  }
+
+  const IDENTITY = {
+    VERIFIED:   ["ok",  "Identity verified",     "The live certificate matches the one ANS sealed."],
+    ROTATED:    ["",    "Certificate rotated",   "Renewed after ANS sealed its record, so the seal is stale."],
+    PENDING:    ["",    "Not sealed yet",        "ANS has its record but has not sealed a certificate."],
+    UNVERIFIED: ["",    "Couldn't verify it",    "The handshake failed, so the certificate could not be compared."],
+    NOT_FOUND:  ["",    "Not in the registry",   ""],
+    MISMATCH:   ["bad", "Certificate mismatch",  "The live certificate is not the one ANS sealed."],
+  };
+  const notFoundSentence = host => {
+    const label = String(host).split(".")[0];
+    return `We searched for ${host}${label !== host ? `, then ${label}` : ""}, then its display name; try one from the table.`;
+  };
+
+  // ---- the display layer: nothing from the payload reaches the DOM except through here ---
+  // Internal ids, oracle keys, severities, bracketed tags, metric names, raw dumps and
+  // anything that looks like a serialised structure stop here. ?debug=1 bypasses it all.
+  const NAMES = {
+    "dns.dnssec": "DNSSEC on {t}",
+    "dns.a_record": "DNS records for {t}",
+    "dns.aaaa_record": "IPv6 records for {t}",
+    "dns.mx": "Mail servers for {t}",
+    "dns.ns": "Name servers for {t}",
+    "dns.txt": "TXT records for {t}",
+    "dns.resolves": "Whether {t} resolves",
+    "tls.chain_valid": "Certificate validity for {t}",
+    "tls.cert_expiry": "Certificate expiry for {t}",
+    "tls.not_after": "Certificate expiry for {t}",
+    "tls.expired": "Whether the certificate for {t} has expired",
+    "tls.issuer": "Certificate issuer for {t}",
+    "tls.hostname_match": "Certificate name match for {t}",
+    "http.https_ok": "HTTPS works for {t}",
+    "http.status": "HTTP status of {t}",
+    "email.spf": "SPF record for {t}",
+    "email.dmarc": "DMARC record for {t}",
+    "whois.registrar": "Registrar of {t}",
+    "whois.nameservers": "Registered name servers for {t}",
+    "whois.created": "Registration date of {t}",
+    "whois.expires": "Registration expiry of {t}",
+    "whois.registered": "Whether {t} is registered",
+    "web.endpoint_live": "Its endpoint at {t} is live",
+    "web.fetchable": "{t} can be fetched",
+    "web.title_present": "Page title on {t}",
+    "web.meta_description_present": "Meta description on {t}",
+    "web.h1_present": "Main heading on {t}",
+    "web.h1_count": "Number of main headings on {t}",
+    "web.canonical_present": "Canonical link on {t}",
+    "web.canonical": "Canonical URL of {t}",
+    "web.jsonld_present": "Structured data on {t}",
+    "web.og_present": "Open Graph tags on {t}",
+    "web.viewport_present": "Mobile viewport tag on {t}",
+    "web.llms_txt_exists": "llms.txt on {t}",
+    "web.redirect_count": "Redirects from {t}",
+    "web.status": "HTTP status of {t}",
+    "web.final_url": "Where {t} lands",
+    "web.title": "Page title of {t}",
+    "drift.card_vs_trust": "Its three records agree",
+    "card.skills_nonempty": "Its card lists real skills",
+    "card.protocol_declared": "Its card declares {t}",
+    "endpoint.reachable": "Its endpoint answers",
+    "quality.explainability": "How readable its answers are",
+  };
+  const BANNED = /readability=|grounding=|actionability=|classical ML|blend|score_confidence|oracle|Traceback|\.py\b|claude|sonnet|SELF-CLAIM|NO VERDICT|SKIPPED|DRIFT:|runner error|deadline|x402|eyJ|\{\x22|\['|\b(dns|tls|web|http|email|whois|card|drift|endpoint|quality)\.[a-z_]+\b/i;
+
+  function displayTarget(a) {
+    let t = target(a);
+    if (a.claim === "card.protocol_declared") t = String(t).toUpperCase();
+    return String(t).replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
+  }
+  function checkName(a) {
+    const t = displayTarget(a);
+    const tpl = NAMES[a.claim];
+    let name = tpl ? tpl.replace("{t}", t) : (t ? `Checked ${t}` : "A check we ran");
+    if (a.kind === "consistency") name = `Same answer twice: ${name}`;
+    return name;
+  }
+  function looksLikeDump(s) {
+    if (s.length > 220 || s.includes(String.fromCharCode(123, 34)) || /^\s*[\[{]/.test(s)) return true;
+    try { const j = JSON.parse(s); if (typeof j === "object" && j !== null) return true; } catch (e) {}
+    return false;
+  }
+  function plain(v, none) {
+    if (v === null || v === undefined) return none;
+    if (typeof v === "boolean") return v ? "true" : "false";
+    if (typeof v === "number") return String(v);
+    if (Array.isArray(v)) {
+      if (!v.length) return "none";
+      if (!v.every(x => typeof x !== "object")) return none;
+      const s = v.map(String).join(", ");
+      return looksLikeDump(s) ? none : s;
+    }
+    if (typeof v === "object") return none;
+    const s = String(v).trim();
+    if (!s) return "none";
+    return looksLikeDump(s) ? none : s;
+  }
+  function cleanEvidence(a) {
+    const s = String(a.evidence || "").replace(/^\s*\[[^\]]*\]\s*/, "").trim();
+    if (!s || BANNED.test(s) || looksLikeDump(s)) return "";
+    return s.replace(/\bagent said\b/g, "it said").replace(/\[\]/g, "none");
+  }
+  function canned(a) {
+    if (a.passed === true) return "Its answer matched what we measured.";
+    if (a.passed === false) return (a.actual === null || a.actual === undefined) ? "Its answer didn't contain a value." : "Its answer didn't match what we measured.";
+    if (/deadline/.test(a.error || "")) return "We ran out of time before asking it this.";
+    if (isSkipped(a)) return "We couldn't establish a true answer here.";
+    if (isNoVerdict(a)) return "It didn't answer, so there's nothing to grade.";
+    return "Not graded.";
+  }
+  // one assertion -> what the table shows
+  function view(a) {
+    const tag = a.passed === true ? ["pass", "ok"] : a.passed === false ? ["fail", "bad"] : DEBUG && isNoVerdict(a) ? ["no verdict", ""] : ["skipped", ""];
+    if (DEBUG) {
+      const j = v => v === null || v === undefined ? "—" : typeof v === "string" ? v : JSON.stringify(v);
+      return { name: a.id, sub: [a.oracle || a.claim, (a.severity || "").toLowerCase()].filter(Boolean).join("  "),
+               measured: j(a.expected), said: j(a.actual), tag, reason: a.evidence || a.error || "" };
+    }
+    const v = { name: checkName(a), sub: "", tag, reason: cleanEvidence(a) || canned(a) };
+    if (a.kind === "quality") {
+      v.measured = "—"; v.said = "—"; v.reason = "Style only; this never affects a verdict.";
+    } else if (a.claim === "endpoint.reachable") {
+      const e = a.error || "";
+      v.measured = "answers";
+      v.said = a.passed ? "answered" : /402|authentication/i.test(e) ? "refused" : "no answer";
+      v.reason = a.passed ? "It answered the call." : /402|authentication/i.test(e) ? "It refused the call." : /connection failed/i.test(e) ? "We couldn't connect." : "It didn't answer.";
+    } else if (a.claim === "drift.card_vs_trust") {
+      const n = Array.isArray(a.actual) ? a.actual.length : null;
+      v.measured = "agree";
+      v.said = n === null ? "no usable answer" : n === 0 ? "agree" : `${n} difference${n === 1 ? "" : "s"}`;
+      if (a.passed === false) v.reason = "Its agent card, trust card and registry entry disagree.";
+      if (a.passed === null) v.reason = "Fewer than two of its records could be read.";
     } else {
-      badges.push(`<span class="badge b-schema">${esc(c.oracle_key)}</span>`);
-      const p = tests.filter(a => a.passed === true), f = tests.filter(a => a.passed === false), s = tests.filter(a => a.passed === null);
-      cls += f.length ? " has-fail" : (p.length ? " all-pass" : " skip");
-      what = `${tests.length} test${tests.length > 1 ? "s" : ""}: <span class="val">${p.length} passed</span>` +
-        (f.length ? `, <span class="val" style="color:var(--red)">${f.length} failed</span>` : "") +
-        (s.length ? `, ${s.length} skipped` : "");
-      const worst = f.sort((a, b) => SEV[a.severity] - SEV[b.severity])[0];
-      if (worst) what += `<br><span class="sev-${worst.severity}">${worst.severity}</span> ${esc(worst.id)} — ${isSelf ? "we measured" : "expected"} <span class="val">${esc(short(isSelf ? worst.actual : worst.expected, 70))}</span>` +
-        (isSelf ? `, it claims <span class="val">${esc(short(worst.expected, 40))}</span>` : `, it said <span class="val">${esc(worst.actual === null ? "nothing usable" : short(worst.actual, 70))}</span>`);
-      else if (s.length && !p.length) what += `<br>${esc(short(s[0].evidence, 140))}`;
+      v.measured = plain(a.expected, "—");
+      v.said = plain(a.actual, "no usable answer");
     }
-    d.className = cls;
-    d.innerHTML = `<div class="badges">${badges.join("")}</div><div><div class="text">${esc(c.claim_text)}</div><div class="what">${what}</div></div>`;
-    return d;
+    return v;
   }
 
-  function renderTable(r) {
-    const tb = $("#atable tbody"); tb.innerHTML = "";
+  // ---- render -----------------------------------------------------------------------
+  let openOnce = location.hash;
+  function render(r) {
+    const res = $("results");
+    res.hidden = false; $("skeleton").hidden = true;
+    if (openOnce) { for (const d of res.querySelectorAll("details")) d.open = openOnce === "#" + d.id; openOnce = ""; }
+    res.classList.remove("enter"); void res.offsetWidth; res.classList.add("enter");
+
+    const scoreEl = $("score");
+    scoreEl.classList.toggle("none", !hasScore(r));
+    if (hasScore(r)) countUp(scoreEl, r.behavior_score); else scoreEl.textContent = "—";
+    $("score-label").textContent = hasScore(r) ? "behavior score" : "nothing could be measured";
+    const cv = caveat(r);
+    $("caveat").hidden = !cv; $("caveat").textContent = cv;
+    const cov = r.coverage || {};
+    $("coverage").innerHTML = cov.claims_found ? `${esc(cov.verifiable ?? 0)}<small>/ ${esc(cov.claims_found)}</small>` : "—";
+    $("coverage").classList.toggle("none", !cov.claims_found);
+
+    const id = r.identity || {};
+    const [cls, word, sentence] = IDENTITY[id.status] || ["", "Couldn't verify it", "No identity result came back."];
+    const line = id.status === "NOT_FOUND" ? notFoundSentence(r.target_host || id.host || "") : sentence;
+    let html = `<span class="pill ${cls}">${esc(word)}</span><span>${esc(line)}</span>`;
+    if (r.cards && r.cards.card_error) html += `<span class="extra">Its card couldn't be read; the claims below come from its registry entry.</span>`;
+    $("identity").innerHTML = html;
+
+    renderClaims(r);
+    renderChecks(r);
+    $("log").innerHTML = buildLog(r);
+  }
+
+  function renderClaims(r) {
+    const claims = (r.coverage && r.coverage.claims) || [];
+    const box = $("claims");
+    if (!claims.length) {
+      box.innerHTML = `<h2>What it says it can do</h2><div class="claims"><div class="claim empty">${r.cards && r.cards.card_error ? "Nothing readable: its card couldn't be fetched and the registry lists no claims." : "It declares nothing we can read."}</div></div>`;
+      return;
+    }
+    const byClaim = attribute(r.assertions || [], claims);
+    const rows = claims.map(c => {
+      const tests = byClaim.get(c) || [];
+      const graded = tests.filter(a => a.passed !== null && a.passed !== undefined);
+      const passed = graded.filter(a => a.passed === true).length;
+      const failed = graded.length - passed;
+      let mark = "na", text, group;
+      if (graded.length) {
+        text = `${passed} of ${graded.length}`;
+        if (failed === 0) { mark = "ok"; group = 1; } else { mark = "bad"; group = 0; }
+      } else {
+        group = 2;
+        if (c.verifiability === "UNVERIFIABLE") text = "no way to check";
+        else if (c.verifiability === "SCHEMA_ONLY") text = "only its paperwork";
+        else if (tests.some(isNoVerdict)) text = "it wouldn't answer";
+        else text = "we couldn't check";
+      }
+      return { c, mark, text, group, failed };
+    });
+    const glyph = { ok: "✓", bad: "✕", na: "–" };
+    const section = (title, items) => !items.length ? "" :
+      `<h2>${esc(title)} (${items.length})</h2><div class="claims">` +
+      items.map(({ c, mark, text }) => `<div class="claim"><span class="mark ${mark}">${glyph[mark]}</span><span class="text">${esc(c.claim_text)}</span><span class="count ${mark}">${esc(text)}</span></div>`).join("") +
+      `</div>`;
+    const fails = rows.filter(x => x.group === 0).sort((a, b) => b.failed - a.failed);
+    box.innerHTML = section("Didn't do what it says", fails) +
+                    section("Did what it says", rows.filter(x => x.group === 1)) +
+                    section("Couldn't be checked", rows.filter(x => x.group === 2));
+  }
+
+  function renderChecks(r) {
+    const A = (r.assertions || []).slice();
     const order = a => a.passed === false ? 0 : a.passed === true ? 1 : 2;
-    const rows = [...r.assertions].sort((a, b) => order(a) - order(b) || SEV[a.severity] - SEV[b.severity] || a.id.localeCompare(b.id));
-    for (const a of rows) {
-      const skipped = a.passed === null;
-      const isSelf = a.kind === "selfclaim", isQ = a.kind === "quality";
-      const verdict = a.passed === true ? `<span class="badge b-pass">PASS</span>`
-        : a.passed === false ? `<span class="badge b-fail">FAIL</span>`
-        : isQ ? `<span class="badge b-noverdict">INFO</span>`
-        : (a.error || "").startsWith("agent unavailable") ? `<span class="badge b-noverdict">NO VERDICT</span>`
-        : `<span class="badge b-skip">SKIPPED</span>`;
-      let expected = isSelf ? `claims ${esc(short(a.expected, 60))}` : esc(short(a.expected, 110));
-      let said = isSelf ? `<i>not asked</i> — we measured ${esc(short(a.actual, 60))}` : (a.actual === null ? "<i>no usable value in its answer</i>" : esc(short(a.actual, 110)));
-      if (isQ) { expected = "<i>none — quality never passes or fails</i>"; said = esc(short(a.actual, 110)); }
-      if (skipped && !isQ) { said = "<i>—</i>"; if (a.error && a.error.startsWith("oracle unavailable")) expected = "<i>could not compute</i>"; }
-      const tr = document.createElement("tr");
-      tr.className = a.passed === false ? "fail" : skipped ? "skip" : "";
-      tr.innerHTML = `<td><b>${esc(a.id)}</b><br><span style="color:var(--dim)">${esc(a.kind)} · ${esc(a.claim)}</span>${a.generated ? ' <span class="badge b-gen">generated</span>' : ""}<br><span class="sev-${a.severity}">${a.severity}</span></td>` +
-        `<td>${esc(target(a))}</td><td class="val">${expected}</td><td class="val">${said}</td><td>${verdict}</td>` +
-        `<td class="ev"><div class="ellip" title="${esc(a.evidence)}">${esc(a.evidence)}</div></td>`;
-      tb.appendChild(tr);
-    }
+    A.sort((x, y) => order(x) - order(y) || sev(x) - sev(y));
+    $("checks-body").innerHTML = A.map(a => {
+      const v = view(a);
+      return `<tr class="row"><td class="name">${esc(v.name)}${v.sub ? `<span class="sub">${esc(v.sub)}</span>` : ""}</td>` +
+             `<td>${esc(v.measured)}</td><td>${esc(v.said)}</td>` +
+             `<td class="verdict"><span class="tag ${v.tag[1]}">${v.tag[0]}</span></td></tr>` +
+             `<tr class="ev"><td colspan="4">${esc(v.reason)}</td></tr>`;
+    }).join("");
+    const basis = $("basis");
+    basis.hidden = !DEBUG;
+    if (DEBUG) basis.textContent = `${r.score_basis || ""} confidence: ${(r.summary || {}).score_confidence || ""}`;
   }
 
-  // ---- wiring -------------------------------------------------------------------
-  $("#inputrow").addEventListener("submit", e => { e.preventDefault(); start($("#agent").value); });
-  document.querySelectorAll(".preset").forEach(b => b.addEventListener("click", () => start(b.dataset.host)));
-  const q = new URLSearchParams(location.search).get("agent");
-  if (q) start(q);
+  // ---- run log: the real step events, then lines derived from the payload ---------------
+  let stepLog = [];
+  const RAW = /Error|Traceback|\(_?[a-z_]+\.(c|py)\b|\[[A-Z_: ]+\]|eyJ|x402/;
+  function scrubDetail(s, step, status) {
+    if (DEBUG) return s;
+    let d = String(s || "");
+    if (step === "card" && status === "fail") d = "card could not be read — " + d.split(" — ").pop();
+    if (RAW.test(d)) d = d.split(" — ").filter(part => !RAW.test(part)).join(" — ") || (status === "fail" ? "failed" : "");
+    return d
+      .replace(/agentId\s*[0-9a-f-]{8,}/i, "record found")
+      .replace(/MISMATCH live\s*(sha256)?\s*…?[0-9a-f]*\s*≠\s*sealed\s*(sha256)?\s*…?[0-9a-f]*/i, "did not match the sealed one")
+      .replace(/(sha256)?\s*…[0-9a-f]+\s*=\s*sealed/i, "matched the sealed one")
+      .replace(/\s*—?\s*sealed\s*(sha256)?\s*…?[0-9a-f]*\s*never compared/i, "")
+      .replace(/sha256\s*…?[0-9a-f]*/gi, "")
+      .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "")
+      .replace(/\s{2,}/g, " ").trim();
+  }
+  function buildLog(r) {
+    const L = [];
+    const b = s => `<b>${esc(s)}</b>`;
+    for (const s of stepLog) {
+      const bad = s.status === "fail" && s.step === "fingerprint";
+      const d = scrubDetail(s.detail, s.step, s.status);
+      const line = `${esc(DOING[s.step] || s.label || s.step)}${d ? " — " + esc(d) : ""}`;
+      L.push(bad ? `<span class="bad">${line}</span>` : line);
+    }
+    const id = r.identity || {};
+    if (id.fingerprint_match === true) L.push(`Live certificate ${b("matched the sealed one")}.`);
+    else if (id.fingerprint_match === false && id.rotated) L.push(`Live certificate did not match the sealed one; it was ${b("renewed after the seal")}.`);
+    else if (id.fingerprint_match === false) L.push(`<span class="bad">Live certificate did not match the sealed one.</span>`);
+    else L.push(`Certificate ${b("not compared")}.`);
+    if (DEBUG) for (const n of id.notes || []) L.push(esc(n));
+    if (r.cards && r.cards.card_error) L.push(DEBUG ? `Card error: ${esc(r.cards.card_error)}` : "Its agent card could not be read.");
+    const cov = r.coverage || {};
+    if (cov.claims_found !== undefined) L.push(`${b(cov.claims_found)} claims read from its card, ${b(cov.verifiable ?? 0)} with something we can check.`);
+    const s = r.summary || {};
+    if (s.evidence_n !== undefined) L.push(`${b(s.evidence_n)} graded capability tests.`);
+    const A = r.assertions || [];
+    const n = k => A.filter(a => a.passed === k).length;
+    L.push(`Results: ${b(n(true))} passed, ${b(n(false))} failed, ${b(A.length - n(true) - n(false))} without a verdict.`);
+    if (DEBUG) { for (const note of s.notes || []) L.push(esc(note)); L.push(esc(r.score_basis || "")); }
+    L.push(r.cached ? `Served from cache; run at ${b(r.run_at || "")}.` : `Fresh run at ${b(r.run_at || "")}.`);
+    return L.join("\n");
+  }
+
+  // ---- motion -------------------------------------------------------------------------
+  function countUp(el, to) {
+    if (REDUCED) { el.textContent = to; return; }
+    let t0 = null;                       // the first frame's own timestamp, never an earlier clock
+    const tick = now => {
+      if (t0 === null) t0 = now;
+      const p = Math.min(1, Math.max(0, (now - t0) / 600));
+      el.textContent = Math.round(to * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    setTimeout(() => { el.textContent = to; }, 700);   // lands even if frames stall
+  }
+
+  // ---- progress: six stages, a timer, and a rule that creeps between boundaries ----------
+  const prog = { state: {}, start: 0, lastDone: 0, timer: null, finished: false, error: false };
+  const mmss = ms => { const s = Math.max(0, Math.floor(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+  function doneCount() {
+    let n = 0;
+    for (const s of STEPS) { const st = prog.state[s]; if (st && st.status !== "running") n++; else break; }
+    return n;
+  }
+  function currentStep() {
+    const running = STEPS.filter(s => prog.state[s] && prog.state[s].status === "running");
+    if (running.length) return running[running.length - 1];
+    const n = doneCount();
+    return n < STEPS.length ? STEPS[n] : null;
+  }
+  function runCount(detail) {
+    const m = String(detail || "").match(/^(\d+)\s*\/\s*(\d+)$/);
+    return m ? `${m[1]} of ${m[2]} tests` : "";
+  }
+  function paintSteps() {
+    const cur = prog.finished ? null : currentStep();
+    const elapsed = mmss(performance.now() - prog.start);
+    $("steps").innerHTML = STEPS.map(s => {
+      const st = prog.state[s];
+      const settled = st && st.status !== "running";
+      const isNow = s === cur;
+      const cls = settled ? st.status : isNow ? "now" : "pending";
+      const mark = settled ? (st.status === "done" ? "✓" : st.status === "fail" ? "✕" : "●") : isNow ? "●" : "";
+      const text = settled ? DID[s] : DOING[s];
+      let detail = st ? scrubDetail(st.detail, s, st.status) : "";
+      if (s === "run" && st) detail = runCount(st.detail) || (settled ? "" : detail);
+      const showDetail = detail && (settled || (s === "run" && isNow));
+      return `<li class="${cls}"><span class="m">${mark}</span><span>${esc(text)}</span>` +
+             `<span class="t">${isNow || (prog.finished && s === "run") ? elapsed : ""}</span>` +
+             (showDetail ? `<span class="d">${esc(detail)}</span>` : "") + `</li>`;
+    }).join("");
+  }
+  function paintRule() {
+    const n = doneCount();
+    let frac = n / STEPS.length;
+    if (!prog.finished && n < STEPS.length && !REDUCED) {
+      const t = (performance.now() - prog.lastDone) / 1000;
+      frac += (1 / STEPS.length) * 0.96 * (1 - Math.exp(-t / CREEP_TAU_S));   // never reaches the next boundary
+    }
+    if (prog.finished) frac = 1;
+    $("fill").style.width = `${frac * 100}%`;
+  }
+  function stepEvent(d) {
+    const before = doneCount();
+    prog.state[d.step] = d;
+    if (doneCount() !== before) prog.lastDone = performance.now();
+    paintSteps(); paintRule();
+  }
+  function startProgress() {
+    const p = $("progress");
+    p.hidden = false; p.className = ""; $("err").hidden = true;
+    prog.state = {}; prog.start = performance.now(); prog.lastDone = prog.start; prog.finished = false; prog.error = false;
+    prog.state.registry = { step: "registry", status: "running", detail: "" };
+    paintSteps(); paintRule();
+    clearInterval(prog.timer);
+    prog.timer = setInterval(() => { if (!prog.finished) { paintSteps(); paintRule(); } }, 1000);
+    if (!REDUCED) creep();
+  }
+  function creep() {
+    if (prog.finished || prog.error) return;
+    paintRule();
+    setTimeout(creep, 250);
+  }
+  function finishProgress() {
+    prog.finished = true;
+    clearInterval(prog.timer); prog.timer = null;
+    for (const s of STEPS) if (!prog.state[s] || prog.state[s].status === "running") prog.state[s] = { step: s, status: "done", detail: (prog.state[s] || {}).detail || "" };
+    paintSteps(); paintRule();
+  }
+  function showError(msg) {
+    prog.error = true; prog.finished = true;
+    clearInterval(prog.timer); prog.timer = null;
+    $("progress").className = "error";
+    $("err").hidden = false; $("err").textContent = msg;
+  }
+
+  // ---- the run: SSE first, polling second --------------------------------------------
+  let es = null, seq = 0;
+  function hostOf(text) {
+    let t = (text || "").trim().toLowerCase();
+    t = t.replace(/^ans:\/\//, "").replace(/^v?\d+(?:\.\d+)*\./, "");   // ans://v1.0.7.host -> host
+    t = t.replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/\/+$/, "");
+    return t;                                   // no dot: a bare name; the registry's fallbacks take it from here
+  }
+  function run(text) {
+    const host = hostOf(text);
+    if (!host) return;
+    if (es) { es.close(); es = null; }
+    const my = ++seq;
+    // everything the eye can see changes now, before any network
+    document.body.classList.remove("landing");
+    $("host").value = host;
+    $("run").disabled = true;
+    $("landing").hidden = true;
+    $("results").hidden = true;
+    for (const d of $("results").querySelectorAll("details")) d.open = false;
+    $("skeleton").hidden = false;
+    const skeletonAt = performance.now();
+    try { history.replaceState(null, "", `?host=${encodeURIComponent(host)}${DEBUG ? "&debug=1" : ""}${FORCE_POLL ? "&transport=poll" : ""}`); } catch (e) {}
+    stepLog = [];
+    startProgress();
+    let got = false;
+    const finish = payload => {
+      if (my !== seq) return;
+      const wait = Math.max(0, MIN_PROGRESS_MS - (performance.now() - prog.start), MIN_SKELETON_MS - (performance.now() - skeletonAt));
+      setTimeout(() => {
+        if (my !== seq) return;
+        finishProgress();
+        render(payload);
+        $("run").disabled = false;
+      }, wait);
+    };
+    const fail = msg => {
+      if (my !== seq) return;
+      $("skeleton").hidden = true;
+      showError(msg);
+      $("run").disabled = false;
+    };
+    const poll = () => {
+      fetch(`/api/benchmark/${encodeURIComponent(host)}`)
+        .then(async res => {
+          const text = await res.text();
+          let j = null; try { j = JSON.parse(text); } catch (e) {}
+          if (!res.ok) throw new Error((j && j.detail) || `the server answered ${res.status}`);
+          if (!j || !j.assertions) throw new Error("the server answered with something that is not a report");
+          if (!stepLog.length) { stepLog = cachedSteps(j); for (const s of stepLog) stepEvent(s); }
+          finish(j);
+        })
+        .catch(e => fail(`Couldn't get a result: ${e.message}. That is on our side, not the agent's.`));
+    };
+    if (!("EventSource" in window) || FORCE_POLL) return poll();
+    try {
+      es = new EventSource(`/api/stream/${encodeURIComponent(host)}`);
+    } catch (e) { return poll(); }
+    const s = es;
+    s.addEventListener("step", ev => {
+      if (my !== seq) return;
+      got = true;
+      const d = JSON.parse(ev.data);
+      const i = stepLog.findIndex(x => x.step === d.step);
+      if (i >= 0) stepLog[i] = d; else stepLog.push(d);
+      stepEvent(d);
+    });
+    s.addEventListener("done", ev => {
+      if (my !== seq) return;
+      got = true; s.close(); es = null;
+      finish(JSON.parse(ev.data));
+    });
+    s.addEventListener("error", ev => {
+      if (my !== seq) return;
+      if (ev.data !== undefined) {              // the server's own error event, already a sentence
+        got = true; s.close(); es = null;
+        let m = ""; try { m = JSON.parse(ev.data).message; } catch (e) { m = ev.data; }
+        return fail(m || "The run failed on our side.");
+      }
+      if (s.readyState === EventSource.CLOSED || !got) {   // transport broke: poll instead
+        s.close(); if (es === s) es = null;
+        poll();
+      }
+    });
+  }
+
+  // a cached report answered by polling carries no step events; reconstruct the six from it,
+  // the same way the server does for its own replay
+  function cachedSteps(r) {
+    const id = r.identity || {}, cov = r.coverage;
+    const L = [];
+    L.push({ step: "registry", status: id.registry_found ? "done" : "warn", detail: id.ans_name || (id.registry_found ? "found" : "not in registry search") });
+    L.push({ step: "tl", status: id.tl_entry_found ? "done" : "warn", detail: id.tl_entry_found ? "record found" : "no transparency-log entry" });
+    L.push({ step: "fingerprint", status: id.fingerprint_match === true ? "done" : id.fingerprint_match === false ? "fail" : "warn",
+             detail: id.fingerprint_match === true ? "matched the sealed one" : id.fingerprint_match === false ? "did not match the sealed one" : "not compared" });
+    L.push({ step: "card", status: r.cards && r.cards.card_error ? "fail" : "done",
+             detail: cov ? `${cov.claims_found} claims: ${cov.self_claims} self / ${cov.capability_claims} capability, ${cov.unverifiable} unverifiable` : "" });
+    L.push({ step: "tests", status: "done", detail: cov ? `${cov.capability_tests} capability tests + ${cov.selfclaim_tests} self-claim checks` : "" });
+    L.push({ step: "run", status: "done", detail: `${(r.assertions || []).length}/${(r.assertions || []).length}` });
+    return L;
+  }
+
+  // ---- landing --------------------------------------------------------------------------
+  function showLanding() {
+    seq++;                                       // abandon any run in flight
+    if (es) { es.close(); es = null; }
+    clearInterval(prog.timer); prog.timer = null; prog.finished = true;
+    $("results").hidden = true; $("skeleton").hidden = true; $("progress").hidden = true;
+    $("run").disabled = false;
+    $("host").value = "";
+    document.body.classList.add("landing");
+    $("landing").hidden = false;
+    try { history.replaceState(null, "", location.pathname); } catch (e) {}
+  }
+  function fallbackExamples() {
+    const line = EXAMPLES.map((h, i) => {
+      const sep = i === 0 ? "" : i === EXAMPLES.length - 1 ? " or " : ", ";
+      return `${sep}<button type="button" data-host="${esc(h)}">${esc(h)}</button>`;
+    }).join("");
+    $("try").innerHTML = `Try ${line}`;
+    $("try").hidden = false; $("examples").hidden = true;
+  }
+  function loadExamples() {
+    fetch("/api/examples?limit=8")
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(String(r.status))))
+      .then(rows => {
+        if (!Array.isArray(rows) || rows.length < 2) throw new Error("too few");
+        $("examples-body").innerHTML = rows.map(x =>
+          `<tr data-host="${esc(x.host)}" tabindex="0"><td class="host">${esc(x.host)}</td>` +
+          `<td class="what">${esc(WHAT[x.host] || "Registered ANS agent")}</td>` +
+          `<td class="score ${typeof x.score === "number" ? "" : "none"}">${typeof x.score === "number" ? esc(x.score) : "—"}</td></tr>`).join("");
+        $("examples").hidden = false; $("try").hidden = true;
+        $("hosts").innerHTML = rows.map(x => `<option value="${esc(x.host)}">`).join("");
+      })
+      .catch(() => {
+        fallbackExamples();
+        $("hosts").innerHTML = EXAMPLES.map(h => `<option value="${esc(h)}">`).join("");
+      });
+  }
+  $("try").addEventListener("click", e => { const b = e.target.closest("button[data-host]"); if (b) run(b.dataset.host); });
+  $("examples-body").addEventListener("click", e => { const tr = e.target.closest("tr[data-host]"); if (tr) run(tr.dataset.host); });
+  $("examples-body").addEventListener("keydown", e => { const tr = e.target.closest("tr[data-host]"); if (tr && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); run(tr.dataset.host); } });
+  $("home").addEventListener("click", e => { e.preventDefault(); showLanding(); });
+  $("form").addEventListener("submit", e => { e.preventDefault(); run($("host").value); });
+
+  loadExamples();
+  const first = Q.get("host") || Q.get("agent");
+  if (first) run(first); else showLanding();
 })();
 </script>
 </body>

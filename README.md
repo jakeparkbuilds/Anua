@@ -565,7 +565,7 @@ Be honest about this in the demo. Judges penalize overclaiming, not simulation.
 | Self-claim vs capability split | ✅ | ✅ **live** — `impact` went from 26/100 with 9 false HIGH failures to 0 failures |
 | Coverage report (VERIFIABLE/SCHEMA_ONLY/UNVERIFIABLE) | ✅ | ✅ **live** on 3 agents: 65% / 61% / 22% |
 | Subjective classifications are UNVERIFIABLE by backstop | ✅ | ✅ **live** — "detects a parking page" no longer maps to `web.title`; dnsdoc's DNSSEC failures survive the change |
-| INSUFFICIENT_COVERAGE instead of a meaningless number | ✅ | ✅ **live** — fires on `impact` (nothing checkable) and `seo` (paywalled) |
+| Score whenever ≥3 assertions were graded; INSUFFICIENT_COVERAGE only for an empty run | ✅ | ✅ **live** — `impact` and `seo` now score (medium confidence, caveat shown); `anuabot` (2 graded) does not |
 | MCP transport | ⚠️ | ❌ never hit a real agent, and known wrong (see §11) |
 | **Benchmark server** (`make serve`) | ✅ | ✅ **live** — dnsdoc through `/api/benchmark`: 83, then `"cached": true` in 10 ms; SSE steps tick on a forced run |
 | **A2A endpoint — we are a participant** | ✅ | ✅ **live** — `POST /a2a` with our own transport's envelope returns a text summary; own cards pass our own drift check |
@@ -805,25 +805,27 @@ is exactly the self-declaration problem this project exists to expose: an agent 
 anything, and until somebody computes the answer independently, nothing in the registry
 distinguishes a good one from a confident one.
 
-### When there is no score
+### When there is no score, and what the number rests on
 
-`behavior_score` is a *behaviour* score. If not one capability assertion was graded, a
-number would be built entirely out of the agent's endpoint being up and its prose being
-readable — which is the self-declaration problem again, one level up. So the report says
-`INSUFFICIENT_COVERAGE`, `behavior_score` is `null`, and `score_basis` names the cause:
+`behavior_score` is a renormalised blend over the pools that actually produced a graded
+assertion — capability (oracle + consistency), self-claim, schema, and quality when it ran.
+A pool with nothing graded is simply not in either sum; it is never counted as zero. The
+number is emitted whenever **three or more** assertions were graded in total. Below that
+the run is genuinely empty: `score_status` is `INSUFFICIENT_COVERAGE` and the score is
+`null`.
+
+Because a low-coverage run now produces a number, `score_confidence` says what it rests
+on, and the page prints the caveat under the score:
 
 ```
-impact.webmesh.ai  INSUFFICIENT_COVERAGE
-  none of the 15 capability claims this agent makes maps onto an oracle — 12 of 23
-  declared claims are unverifiable by anyone. Its 4 self-claims about its own
-  infrastructure were checked directly and 4 held.
-
-seo.webmesh.ai     INSUFFICIENT_COVERAGE
-  the agent refused to serve us (HTTP 402 payment required), so none of the 29
-  capability tests written for it could be graded. Its 3 self-claims held.
+high    graded capability tests outnumber everything else
+medium  the score rests mostly on self-claims and schema   "Mostly from claims about its own setup."
+low     only three or four assertions were graded          "Based on only a few checks."
+none    no score
 ```
 
-Those two lines say more about an agent than any number would, and they say it honestly.
+`score_basis` spells the arithmetic out (`score = 100 × (0.70×0.862 + 0.25×1.000 + …) / 1.25`)
+and `scripts/recompute.py` redoes it by hand from the raw assertions.
 
 ### `--suite regression`
 
@@ -889,9 +891,8 @@ CAPABILITY / UNVERIFIABLE with what happened to it, the reasons shown verbatim; 
 assertions table is the evidence, failures first, HIGH at the top. **Expected** is labelled
 as our oracle's ground truth, and SKIPPED (grey — we could not compute or reach) never
 looks like FAIL (red — the agent was wrong). When `score_status` is INSUFFICIENT_COVERAGE
-the phrase stands where the number would be, with `score_basis` under it. A 402 renders as
-"Declined to be benchmarked", a refused connection as "Endpoint not reachable" — neither is
-an error state. The steps tick from `/api/stream`; if the stream drops, the page polls
+an em dash stands where the number would be, labelled "nothing could be measured". A soft
+score carries a one-line caveat under it (paywalled, unreachable, medium or low confidence). The steps tick from `/api/stream`; if the stream drops, the page polls
 `/api/benchmark` and draws the checklist from the report. `/?agent=<host>` deep-links a run.
 
 ### Caching — demo insurance, not a nicety

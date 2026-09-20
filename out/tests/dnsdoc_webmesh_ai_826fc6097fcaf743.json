@@ -1,0 +1,900 @@
+{
+ "written_at": "2026-09-20T05:48:47.939126+00:00",
+ "card_key": "826fc6097fcaf743",
+ "assertions": [
+  {
+   "id": "self-web-endpoint-live-dnsdoc-webmesh-ai-mcp",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://dnsdoc.webmesh.ai/mcp"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Exposes an MCP server endpoint at https://dnsdoc.webmesh.ai/mcp via streamable-HTTP transport",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-web-endpoint-live-dnsdoc-webmesh-ai",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://dnsdoc.webmesh.ai"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Exposes an A2A endpoint at https://dnsdoc.webmesh.ai",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-tls-chain-valid-dnsdoc-webmesh-ai",
+   "kind": "selfclaim",
+   "claim": "tls.chain_valid",
+   "input": {
+    "domain": "dnsdoc.webmesh.ai"
+   },
+   "prompt": null,
+   "oracle": "tls.chain_valid",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Presents an ANS Identity Certificate (x5c chain) during TLS handshake",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-web-endpoint-live-dnsdoc-webmesh-ai-well-kn",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://dnsdoc.webmesh.ai/.well-known/ans/trust-card.json"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Publishes a Trust Card at https://dnsdoc.webmesh.ai/.well-known/ans/trust-card.json",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "dns-a-record-nxdomain",
+   "kind": "oracle",
+   "claim": "dns.a_record",
+   "input": {
+    "domain": "this-domain-does-not-exist-zz.invalid"
+   },
+   "prompt": "Diagnose DNS for this-domain-does-not-exist-zz.invalid \u2014 please run a live A record lookup and tell me the exact IPv4 addresses returned. Respond in JSON with key 'a_records' as a list.",
+   "oracle": "dns.a_record",
+   "comparator": "set_overlap",
+   "expected_override": null,
+   "severity": "HIGH",
+   "generated": true,
+   "rationale": "Agent must return empty A record list for NXDOMAIN, not hallucinate IPs.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "dns-a-record-iana",
+   "kind": "oracle",
+   "claim": "dns.a_record",
+   "input": {
+    "domain": "iana.org"
+   },
+   "prompt": "Run a live DNS A record check for iana.org and report the exact IPv4 addresses. Respond in JSON with key 'a_records' as a list of strings.",
+   "oracle": "dns.a_record",
+   "comparator": "set_overlap",
+   "expected_override": null,
+   "severity": "HIGH",
+   "generated": true,
+   "rationale": "Verifies agent returns correct live A records for a stable, well-known domain.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "dns-aaaa-record-cloudflare",
+   "kind": "oracle",
+   "claim": "dns.aaaa_record",
+   "input": {
+    "domain": "cloudflare.com"
+   },
+   "prompt": "Check the DNS AAAA (IPv6) records for cloudflare.com and list all addresses found. Respond in JSON with key 'aaaa_records' as a list of strings.",
+   "oracle": "dns.aaaa_record",
+   "comparator": "set_overlap",
+   "expected_override": null,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "Cloudflare is dual-stack; agent should return at least one AAAA record.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "dns-mx-no-mx-example",
+   "kind": "oracle",
+   "claim": "dns.mx",
+   "input": {
+    "domain": "example.com"
+   },
+   "prompt": "My email to example.com is bouncing \u2014 check the MX records for example.com and list every mail exchanger found. Respond in JSON with key 'mx_records' as a list.",
+   "oracle": "dns.mx",
+   "comparator": "set_overlap",
+   "expected_override": null,
+   "severity": "HIGH",
+   "generated": true,
+   "rationale": "example.com has no MX records; agent must not fabricate mail exchangers.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "dns-mx-iana",
+   "kind": "oracle",
+   "claim": "dns.mx",
+   "input": {
+    "domain": "iana.org"
+   },
+   "prompt": "Run a live DNS A record check for iana.org and report the exact IPv4 addresses. Respond in JSON with key 'a_records' as a list of strings.",
+   "oracle": "dns.mx",
+   "comparator": "set_overlap",
+   "expected_override": null,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "Verifies agent retrieves correct MX hostnames for a domain that has them.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "tls-chain-valid-expired-badssl",
+   "kind": "oracle",
+   "claim": "tls.chain_valid",
+   "input": {
+    "domain": "expired.badssl.com"
+   },
+   "prompt": "Diagnose why expired.badssl.com may be unreachable \u2014 check the TLS certificate on port 443 and tell me whether the chain is valid (true/false) and why. Respond in JSON with keys 'chain_valid' (bool) and 'reason'.",
+   "oracle": "tls.chain_valid",
+   "comparator": "bool",
+   "expected_override": null,
+   "severity": "HIGH",
+   "generated": true,
+   "rationale": "Agent must detect that the TLS chain is invalid due to an expired certificate.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "tls-chain-valid-self-signed-badssl",
+   "kind": "oracle",
+   "claim": "tls.chain_valid",
+   "input": {
+    "domain": "self-signed.badssl.com"
+   },
+   "prompt": "Check the TLS certificate on port 443 for self-signed.badssl.com \u2014 is the chain trusted and valid? Respond in JSON with keys 'chain_valid' (bool) and 'reason'.",
+   "oracle": "tls.chain_valid",
+   "comparator": "bool",
+   "expected_override": null,
+   "severity": "HIGH",
+   "generated": true,
+   "rationale": "Agent must detect self-signed certificate as an invalid chain.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "tls-not-after-letsencrypt",
+   "kind": "oracle",
+   "claim": "tls.not_after",
+   "input": {
+    "domain": "letsencrypt.org"
+   },
+   "prompt": "Check the TLS certificate on port 443 for letsencrypt.org and report the exact expiry date of the leaf certificate. Respond in JSON with key 'not_after' as an ISO date (YYYY-MM-DD).",
+   "oracle": "tls.not_after",
+   "comparator": "date_close",
+   "expected_override": null,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "Agent should report the correct leaf certificate expiry date for a real site.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "tls-issuer-mozilla",
+   "kind": "oracle",
+   "claim": "tls.issuer",
+   "input": {
+    "domain": "mozilla.org"
+   },
+   "prompt": "Diagnose the TLS certificate for mozilla.org on port 443 \u2014 what is the issuer common name of the leaf certificate? Respond in JSON with key 'issuer_cn'.",
+   "oracle": "tls.issuer",
+   "comparator": "contains",
+   "expected_override": null,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "Agent should correctly identify the issuer common name of the leaf certificate.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "https-ok-untrusted-root-badssl",
+   "kind": "oracle",
+   "claim": "http.https_ok",
+   "input": {
+    "domain": "untrusted-root.badssl.com"
+   },
+   "prompt": "Why won't my site load \u2014 check HTTPS reachability for untrusted-root.badssl.com and tell me if https://untrusted-root.badssl.com/ is reachable with certificate verification. Respond in JSON with key 'https_ok' (bool) and 'reason'.",
+   "oracle": "http.https_ok",
+   "comparator": "bool",
+   "expected_override": null,
+   "severity": "HIGH",
+   "generated": true,
+   "rationale": "HTTPS reachability check must fail for untrusted-root cert, not report success.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "spf-positive-google",
+   "kind": "oracle",
+   "claim": "email.spf",
+   "input": {
+    "domain": "google.com"
+   },
+   "prompt": "My email from google.com lands in spam. Check the SPF record for google.com and tell me whether a valid v=spf1 record exists. Respond in JSON with {\"spf_present\": true/false, \"spf_record\": \"...\"}",
+   "oracle": "email.spf",
+   "comparator": "bool",
+   "expected_override": null,
+   "severity": "HIGH",
+   "generated": true,
+   "rationale": "google.com is a well-known domain that publishes SPF; agent should detect it.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "spf-negative-expired-badssl",
+   "kind": "oracle",
+   "claim": "email.spf",
+   "input": {
+    "domain": "expired.badssl.com"
+   },
+   "prompt": "Diagnose why expired.badssl.com may be unreachable \u2014 check the TLS certificate on port 443 and tell me whether the chain is valid (true/false) and why. Respond in JSON with keys 'chain_valid' (bool) and 'reason'.",
+   "oracle": "email.spf",
+   "comparator": "bool",
+   "expected_override": null,
+   "severity": "HIGH",
+   "generated": true,
+   "rationale": "expired.badssl.com is a known negative for SPF; agent must not falsely report SPF present.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "spf-positive-ietf",
+   "kind": "oracle",
+   "claim": "email.spf",
+   "input": {
+    "domain": "ietf.org"
+   },
+   "prompt": "Diagnose email deliverability for ietf.org. Does ietf.org have an SPF record (v=spf1)? Respond in JSON with {\"spf_present\": true/false, \"spf_record\": \"...\"}",
+   "oracle": "email.spf",
+   "comparator": "bool",
+   "expected_override": null,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "ietf.org should publish SPF; tests agent on a less obvious but stable domain.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "dmarc-positive-mozilla",
+   "kind": "oracle",
+   "claim": "email.dmarc",
+   "input": {
+    "domain": "mozilla.org"
+   },
+   "prompt": "Diagnose the TLS certificate for mozilla.org on port 443 \u2014 what is the issuer common name of the leaf certificate? Respond in JSON with key 'issuer_cn'.",
+   "oracle": "email.dmarc",
+   "comparator": "bool",
+   "expected_override": null,
+   "severity": "HIGH",
+   "generated": true,
+   "rationale": "mozilla.org should publish DMARC; agent should find _dmarc.mozilla.org TXT record.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "dmarc-negative-expired-badssl",
+   "kind": "oracle",
+   "claim": "email.dmarc",
+   "input": {
+    "domain": "expired.badssl.com"
+   },
+   "prompt": "Diagnose why expired.badssl.com may be unreachable \u2014 check the TLS certificate on port 443 and tell me whether the chain is valid (true/false) and why. Respond in JSON with keys 'chain_valid' (bool) and 'reason'.",
+   "oracle": "email.dmarc",
+   "comparator": "bool",
+   "expected_override": null,
+   "severity": "HIGH",
+   "generated": true,
+   "rationale": "expired.badssl.com is a known DMARC negative; agent must not hallucinate a record.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "dmarc-positive-cloudflare",
+   "kind": "oracle",
+   "claim": "email.dmarc",
+   "input": {
+    "domain": "cloudflare.com"
+   },
+   "prompt": "Check the DNS AAAA (IPv6) records for cloudflare.com and list all addresses found. Respond in JSON with key 'aaaa_records' as a list of strings.",
+   "oracle": "email.dmarc",
+   "comparator": "bool",
+   "expected_override": null,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "cloudflare.com is expected to have DMARC; tests agent on a major infrastructure domain.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "dnssec-positive-cloudflare",
+   "kind": "oracle",
+   "claim": "dns.dnssec",
+   "input": {
+    "domain": "cloudflare.com"
+   },
+   "prompt": "Check the DNS AAAA (IPv6) records for cloudflare.com and list all addresses found. Respond in JSON with key 'aaaa_records' as a list of strings.",
+   "oracle": "dns.dnssec",
+   "comparator": "bool",
+   "expected_override": null,
+   "severity": "HIGH",
+   "generated": true,
+   "rationale": "cloudflare.com is DNSSEC-signed; agent should confirm the chain is valid.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "dnssec-negative-badssl",
+   "kind": "oracle",
+   "claim": "dns.dnssec",
+   "input": {
+    "domain": "badssl.com"
+   },
+   "prompt": "Check DNSSEC chain and DNSKEY records for badssl.com. Is the zone DNSSEC-signed? Respond in JSON with {\"dnssec_signed\": true/false, \"details\": \"...\"}",
+   "oracle": "dns.dnssec",
+   "comparator": "bool",
+   "expected_override": null,
+   "severity": "HIGH",
+   "generated": true,
+   "rationale": "badssl.com is a known DNSSEC negative; agent must not falsely report it as signed.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "dnssec-positive-isc",
+   "kind": "oracle",
+   "claim": "dns.dnssec",
+   "input": {
+    "domain": "isc.org"
+   },
+   "prompt": "Diagnose DNSSEC for isc.org \u2014 is the zone signed with a valid DNSKEY or DS record at the parent? Respond in JSON with {\"dnssec_signed\": true/false, \"details\": \"...\"}",
+   "oracle": "dns.dnssec",
+   "comparator": "bool",
+   "expected_override": null,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "isc.org (Internet Systems Consortium) is expected to be DNSSEC-signed; good edge-case domain.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "dnssec-positive-iana",
+   "kind": "oracle",
+   "claim": "dns.dnssec",
+   "input": {
+    "domain": "iana.org"
+   },
+   "prompt": "Run a live DNS A record check for iana.org and report the exact IPv4 addresses. Respond in JSON with key 'a_records' as a list of strings.",
+   "oracle": "dns.dnssec",
+   "comparator": "bool",
+   "expected_override": null,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "iana.org should be DNSSEC-signed; tests agent on a stable authoritative domain.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "spf-negative-badssl-expired",
+   "kind": "oracle",
+   "claim": "email.spf",
+   "input": {
+    "domain": "expired.badssl.com"
+   },
+   "prompt": "Diagnose why expired.badssl.com may be unreachable \u2014 check the TLS certificate on port 443 and tell me whether the chain is valid (true/false) and why. Respond in JSON with keys 'chain_valid' (bool) and 'reason'.",
+   "oracle": "email.spf",
+   "comparator": "bool",
+   "expected_override": null,
+   "severity": "HIGH",
+   "generated": true,
+   "rationale": "expired.badssl.com is a known negative for SPF; agent must not hallucinate a record.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "dmarc-negative-badssl-expired",
+   "kind": "oracle",
+   "claim": "email.dmarc",
+   "input": {
+    "domain": "expired.badssl.com"
+   },
+   "prompt": "Diagnose why expired.badssl.com may be unreachable \u2014 check the TLS certificate on port 443 and tell me whether the chain is valid (true/false) and why. Respond in JSON with keys 'chain_valid' (bool) and 'reason'.",
+   "oracle": "email.dmarc",
+   "comparator": "bool",
+   "expected_override": null,
+   "severity": "HIGH",
+   "generated": true,
+   "rationale": "expired.badssl.com publishes no DMARC record; agent must correctly report absence.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "spf-positive-mozilla",
+   "kind": "oracle",
+   "claim": "email.spf",
+   "input": {
+    "domain": "mozilla.org"
+   },
+   "prompt": "Diagnose the TLS certificate for mozilla.org on port 443 \u2014 what is the issuer common name of the leaf certificate? Respond in JSON with key 'issuer_cn'.",
+   "oracle": "email.spf",
+   "comparator": "bool",
+   "expected_override": null,
+   "severity": "HIGH",
+   "generated": true,
+   "rationale": "mozilla.org is expected to publish a valid SPF record; tests positive detection.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "dmarc-positive-ietf",
+   "kind": "oracle",
+   "claim": "email.dmarc",
+   "input": {
+    "domain": "ietf.org"
+   },
+   "prompt": "Diagnose email deliverability for ietf.org. Does ietf.org have an SPF record (v=spf1)? Respond in JSON with {\"spf_present\": true/false, \"spf_record\": \"...\"}",
+   "oracle": "email.dmarc",
+   "comparator": "bool",
+   "expected_override": null,
+   "severity": "HIGH",
+   "generated": true,
+   "rationale": "ietf.org is expected to publish a DMARC record; tests positive DMARC detection.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "spf-positive-wikipedia",
+   "kind": "oracle",
+   "claim": "email.spf",
+   "input": {
+    "domain": "wikipedia.org"
+   },
+   "prompt": "Diagnose email deliverability issues for wikipedia.org. Does wikipedia.org publish a TXT DNS record starting with v=spf1? Respond in JSON with keys spf_exists (true/false) and spf_record (string or null).",
+   "oracle": "email.spf",
+   "comparator": "bool",
+   "expected_override": null,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "wikipedia.org should publish SPF; verifies agent correctly identifies a real SPF record.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "dmarc-positive-google",
+   "kind": "oracle",
+   "claim": "email.dmarc",
+   "input": {
+    "domain": "google.com"
+   },
+   "prompt": "My email from google.com lands in spam. Check the SPF record for google.com and tell me whether a valid v=spf1 record exists. Respond in JSON with {\"spf_present\": true/false, \"spf_record\": \"...\"}",
+   "oracle": "email.dmarc",
+   "comparator": "bool",
+   "expected_override": null,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "google.com is a well-known domain with DMARC; tests reliable positive detection.",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  }
+ ],
+ "coverage": {
+  "claims_found": 23,
+  "verifiable": 13,
+  "schema_only": 4,
+  "unverifiable": 6,
+  "claims": [
+   {
+    "claim_text": "Runs live A/AAAA/MX/NS/TXT DNS record checks for a given domain",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "dns.a_record,dns.aaaa_record,dns.mx",
+    "reason": "Agent claims to perform live DNS lookups for caller-supplied domains across multiple record types."
+   },
+   {
+    "claim_text": "Checks the TLS certificate on port 443",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "tls.chain_valid,tls.not_after,tls.issuer",
+    "reason": "Agent claims to inspect TLS certificates for caller-supplied domains."
+   },
+   {
+    "claim_text": "Checks HTTPS reachability and redirects",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "http.https_ok",
+    "reason": "Agent claims to check HTTPS reachability and redirect behavior for caller-supplied domains."
+   },
+   {
+    "claim_text": "Checks SPF records for a domain",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "email.spf",
+    "reason": "Agent claims to check SPF TXT records for caller-supplied domains."
+   },
+   {
+    "claim_text": "Checks DMARC records for a domain",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "email.dmarc",
+    "reason": "Agent claims to check DMARC records for caller-supplied domains."
+   },
+   {
+    "claim_text": "Checks DNSSEC chain validation",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "dns.dnssec",
+    "reason": "Agent claims to validate DNSSEC chains for caller-supplied domains."
+   },
+   {
+    "claim_text": "Checks DANE/TLSA records",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "No oracle in the catalog covers DANE/TLSA record lookups."
+   },
+   {
+    "claim_text": "Returns a BLUF (Bottom Line Up Front) summary",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "This is a subjective claim about the format/style of the agent's output, not independently verifiable by any catalog oracle."
+   },
+   {
+    "claim_text": "Returns prioritized recommendations based on findings",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Recommendations are subjective outputs invented by the agent and cannot be independently verified by any oracle."
+   },
+   {
+    "claim_text": "Supports automated incident response for unreachable hostnames",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "This is a behavioral/workflow claim about the agent's response to unreachable hosts; no oracle can verify the agent's automated response logic."
+   },
+   {
+    "claim_text": "Diagnoses email deliverability problems",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "email.spf,email.dmarc",
+    "reason": "Email deliverability diagnosis is grounded in SPF and DMARC checks which oracles can verify for caller-supplied domains."
+   },
+   {
+    "claim_text": "Detects parking pages",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "'parking' is a subjective classification, not a fact: no oracle computes it and any single signal (title, text length) is only a proxy"
+   },
+   {
+    "claim_text": "Exposes an MCP server endpoint at https://dnsdoc.webmesh.ai/mcp via streamable-HTTP transport",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live",
+    "reason": "This is a claim about the agent's own infrastructure; we can probe whether the endpoint is live."
+   },
+   {
+    "claim_text": "Exposes an A2A endpoint at https://dnsdoc.webmesh.ai",
+    "source": "trust_card",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live",
+    "reason": "This is a claim about the agent's own A2A endpoint; we can probe whether it is live."
+   },
+   {
+    "claim_text": "Presents an ANS Identity Certificate (x5c chain) during TLS handshake",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "tls.chain_valid",
+    "reason": "This is a claim about the specific certificate chain presented during TLS handshake \u2014 a protocol/format claim checkable by contract, not a standard oracle."
+   },
+   {
+    "claim_text": "Signs outbound HTTP requests using RFC 9421 HTTP Message Signatures with an Ed25519 key",
+    "source": "description",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "This is a claim about the agent's use of a specific signing protocol (RFC 9421), verifiable by protocol contract inspection."
+   },
+   {
+    "claim_text": "Publishes a Trust Card at https://dnsdoc.webmesh.ai/.well-known/ans/trust-card.json",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "This is a claim about the agent's own published resource; we can verify it is fetchable."
+   },
+   {
+    "claim_text": "Publishes a transparency log entry at https://transparency.ans.godaddy.com",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "This is a claim about a specific URL the agent says it publishes to; we can check if the URL is reachable."
+   },
+   {
+    "claim_text": "Is publicly accessible with no authentication required",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "We can verify the agent's endpoint is publicly reachable without authentication by fetching it."
+   },
+   {
+    "claim_text": "Supports a gated paid operation (dns_deep_scan) for USD $0.50 requiring a signed mandate",
+    "source": "description",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "This is a claim about the agent's payment/auth protocol for a specific operation, verifiable by protocol contract, not a standard oracle."
+   },
+   {
+    "claim_text": "Supports agent discovery of ANS-registered agents",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "This is a behavioral/protocol capability claim about ANS agent discovery that no catalog oracle can independently verify."
+   },
+   {
+    "claim_text": "Supports agent identity verification via ANS/DNS-AID/DNSSEC",
+    "source": "registry",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "This is a claim about a specific identity verification protocol (ANS/DNS-AID/DNSSEC), checkable by protocol contract rather than a standard oracle."
+   },
+   {
+    "claim_text": "Supports live A2A task interaction with other agents",
+    "source": "registry",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "This is a behavioral claim about inter-agent interaction that no catalog oracle can independently verify."
+   }
+  ],
+  "coverage_ratio": 0.565,
+  "self_claims": 9,
+  "capability_claims": 14,
+  "tests_generated": 30,
+  "selfclaim_tests": 4,
+  "capability_tests": 26,
+  "notes": [
+   "selfclaim_tests skipped: 1 (third-party origin with no path \u2014 nothing about this agent to check)"
+  ]
+ },
+ "notes": [
+  "selfclaim_tests skipped: 1 (third-party origin with no path \u2014 nothing about this agent to check)"
+ ]
+}

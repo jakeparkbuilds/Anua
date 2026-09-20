@@ -1,0 +1,247 @@
+{
+ "written_at": "2026-09-20T05:50:17.509069+00:00",
+ "card_key": "e4bf481f2083cd48",
+ "assertions": [
+  {
+   "id": "self-web-endpoint-live-caller-batradar-club-a2a",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://caller.batradar.club/a2a"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Exposes an A2A endpoint at https://caller.batradar.club/a2a",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-web-endpoint-live-caller-batradar-club-well",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://caller.batradar.club/.well-known/agent-card.json"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Publishes an agent card at https://caller.batradar.club/.well-known/agent-card.json",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-dns-resolves-caller-batradar-club",
+   "kind": "selfclaim",
+   "claim": "dns.resolves",
+   "input": {
+    "domain": "caller.batradar.club"
+   },
+   "prompt": null,
+   "oracle": "dns.resolves",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Is registered under the ANS name ans://v0.1.0.caller.batradar.club",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  }
+ ],
+ "coverage": {
+  "claims_found": 19,
+  "verifiable": 4,
+  "schema_only": 4,
+  "unverifiable": 11,
+  "claims": [
+   {
+    "claim_text": "Talks to 911 operators by phone",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Describes a real-world telephony behavior that no oracle can independently verify."
+   },
+   {
+    "claim_text": "Talks to residents in an app",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Describes a real-world app interaction that no oracle can independently verify."
+   },
+   {
+    "claim_text": "Is the only agent that acts on the outside world",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Subjective architectural claim about a multi-agent system that no oracle can verify."
+   },
+   {
+    "claim_text": "Reports incidents in plain English with every claim having a verified source before being spoken",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Behavioral/quality claim about internal verification logic that no oracle can independently confirm."
+   },
+   {
+    "claim_text": "Reports location and life status first in outbound reports",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Describes ordering of spoken output content; no oracle can verify this behavior."
+   },
+   {
+    "claim_text": "Parses inbound operator questions and fans them out through master as verified queries",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Internal processing behavior of a multi-agent system; no oracle can verify this."
+   },
+   {
+    "claim_text": "Uses 'I don't know' when information is unavailable",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Behavioral claim about spoken output under uncertainty; no oracle can verify this."
+   },
+   {
+    "claim_text": "Controls a conference bridge with per-leg send and receive on a server-side bridge",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Describes telephony infrastructure behavior that no oracle can independently verify."
+   },
+   {
+    "claim_text": "Enforces whisper mode by making the resident heard while keeping the phone silent via wire-level silence enforcement",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Describes low-level telephony audio behavior that no oracle can independently verify."
+   },
+   {
+    "claim_text": "Translates dispatcher statements into guidance for the resident in the house",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Describes a translation/relay behavior that no oracle can independently verify."
+   },
+   {
+    "claim_text": "Provides first aid guidance from established public protocol only (hands-only CPR, recovery position, stay low, do not move someone who fell)",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Behavioral claim about content of spoken guidance; no oracle can verify this."
+   },
+   {
+    "claim_text": "Always defers to the dispatcher for resident guidance",
+    "source": "skill",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Behavioral/policy claim about agent decision-making; no oracle can verify this."
+   },
+   {
+    "claim_text": "Exposes an A2A endpoint at https://caller.batradar.club/a2a",
+    "source": "trust_card",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live",
+    "reason": "Checks whether something is serving at the stated URL."
+   },
+   {
+    "claim_text": "Publishes an agent card at https://caller.batradar.club/.well-known/agent-card.json",
+    "source": "trust_card",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "Checks whether the agent card URL is reachable and returns a non-error response."
+   },
+   {
+    "claim_text": "Uses mutual TLS with an ANS identity certificate from a private CA for authentication",
+    "source": "description",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes an authentication protocol (mTLS with a specific CA); checkable by protocol contract, not a standard oracle."
+   },
+   {
+    "claim_text": "Provides a read-only card and health surface with no authentication required",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "Fetchability without auth can be checked by the oracle; the read-only/no-auth aspect is partially verifiable."
+   },
+   {
+    "claim_text": "Signs its trust card with an EdDSA signature",
+    "source": "trust_card",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes a cryptographic signature scheme on a published document; checkable by protocol/schema inspection, not a standard oracle."
+   },
+   {
+    "claim_text": "Is registered under the ANS name ans://v0.1.0.caller.batradar.club",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "dns.resolves",
+    "reason": "ANS registration may be reflected in DNS; dns.resolves can partially verify the subdomain exists."
+   },
+   {
+    "claim_text": "Supports STREAMABLE-HTTP transport",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes a transport protocol capability; checkable by protocol contract/schema, not a standard oracle."
+   }
+  ],
+  "coverage_ratio": 0.211,
+  "self_claims": 7,
+  "capability_claims": 12,
+  "tests_generated": 3,
+  "selfclaim_tests": 3,
+  "capability_tests": 0,
+  "notes": [
+   "no VERIFIABLE capability claims: no agent-facing tests to generate"
+  ]
+ },
+ "notes": [
+  "no VERIFIABLE capability claims: no agent-facing tests to generate"
+ ]
+}

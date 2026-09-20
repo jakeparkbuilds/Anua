@@ -1,0 +1,379 @@
+{
+ "written_at": "2026-09-20T05:47:54.923598+00:00",
+ "card_key": "d881b48009d4fe78",
+ "assertions": [
+  {
+   "id": "self-web-endpoint-live-auditor-webmesh-ai",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://auditor.webmesh.ai"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Exposes an A2A endpoint at https://auditor.webmesh.ai",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-web-endpoint-live-auditor-webmesh-ai-mcp",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://auditor.webmesh.ai/mcp"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Exposes an MCP server over streamable-HTTP at https://auditor.webmesh.ai/mcp",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-tls-chain-valid-auditor-webmesh-ai",
+   "kind": "selfclaim",
+   "claim": "tls.chain_valid",
+   "input": {
+    "domain": "auditor.webmesh.ai"
+   },
+   "prompt": null,
+   "oracle": "tls.chain_valid",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Presents an ANS Identity Certificate during TLS handshake (mutual TLS)",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-tls-issuer-auditor-webmesh-ai",
+   "kind": "selfclaim",
+   "claim": "tls.issuer",
+   "input": {
+    "domain": "auditor.webmesh.ai"
+   },
+   "prompt": null,
+   "oracle": "tls.issuer",
+   "comparator": "nonempty",
+   "expected_override": null,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Presents an ANS Identity Certificate during TLS handshake (mutual TLS)",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-web-endpoint-live-auditor-webmesh-ai-well-k",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://auditor.webmesh.ai/.well-known/ans/trust-card.json"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Publishes a Trust Card at https://auditor.webmesh.ai/.well-known/ans/trust-card.json",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-http-https-ok-auditor-webmesh-ai",
+   "kind": "selfclaim",
+   "claim": "http.https_ok",
+   "input": {
+    "domain": "auditor.webmesh.ai"
+   },
+   "prompt": null,
+   "oracle": "http.https_ok",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Is publicly accessible with no authentication required",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  },
+  {
+   "id": "self-dns-dnssec-auditor-webmesh-ai",
+   "kind": "selfclaim",
+   "claim": "dns.dnssec",
+   "input": {
+    "domain": "auditor.webmesh.ai"
+   },
+   "prompt": null,
+   "oracle": "dns.dnssec",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Supports ANS, DNS-AID, DNSSEC, DANE TLSA, and DNSid identity anchors",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  }
+ ],
+ "coverage": {
+  "claims_found": 24,
+  "verifiable": 6,
+  "schema_only": 6,
+  "unverifiable": 12,
+  "claims": [
+   {
+    "claim_text": "Independently verifies any transaction from public evidence",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Subjective capability claim about verification scope; no oracle can confirm 'any transaction from public evidence' independently."
+   },
+   {
+    "claim_text": "Produces a signed verdict for each audited transaction",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Claims about signed output format/protocol are schema-level; no oracle measures whether returned verdicts are cryptographically signed."
+   },
+   {
+    "claim_text": "Runs 10 checks per transaction audit",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Internal implementation detail about number of checks; no oracle can verify this count independently."
+   },
+   {
+    "claim_text": "Performs identity chain check: ANS -> cert -> SCITT (3 checks)",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Internal implementation detail about specific sub-checks performed; no oracle can verify this."
+   },
+   {
+    "claim_text": "Verifies mandate signature",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes a verification step the agent performs on caller-supplied input; no oracle covers mandate signature verification."
+   },
+   {
+    "claim_text": "Verifies DPoP binding",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Describes a verification step on caller-supplied input; no oracle covers DPoP binding verification."
+   },
+   {
+    "claim_text": "Verifies scope",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Describes a verification step on caller-supplied input; no oracle covers scope verification."
+   },
+   {
+    "claim_text": "Verifies amount",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Describes a verification step on caller-supplied input; no oracle covers amount verification."
+   },
+   {
+    "claim_text": "Verifies time window",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Describes a verification step on caller-supplied input; no oracle covers time window verification."
+   },
+   {
+    "claim_text": "Verifies SCITT receipt",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Describes a verification step on caller-supplied input; no oracle covers SCITT receipt verification."
+   },
+   {
+    "claim_text": "Verifies on-chain EIP-3009 settlement via eth_getTransactionReceipt on Base Sepolia public RPC",
+    "source": "description",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Describes blockchain verification capability on caller-supplied transaction data; no oracle in catalog covers on-chain settlement verification."
+   },
+   {
+    "claim_text": "Operates with no privileged access",
+    "source": "description",
+    "about": "self",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Subjective/architectural claim about access model; no oracle can verify absence of privileged access."
+   },
+   {
+    "claim_text": "Exposes an A2A endpoint at https://auditor.webmesh.ai",
+    "source": "trust_card",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live",
+    "reason": "Directly checkable by probing whether something is serving at https://auditor.webmesh.ai."
+   },
+   {
+    "claim_text": "Exposes an MCP server over streamable-HTTP at https://auditor.webmesh.ai/mcp",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live",
+    "reason": "Directly checkable by probing whether an endpoint is live at https://auditor.webmesh.ai/mcp."
+   },
+   {
+    "claim_text": "Signs outbound HTTP requests using RFC 9421 HTTP Message Signatures with an Ed25519 key",
+    "source": "description",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Claim about outbound request signing protocol (RFC 9421); checkable by contract/protocol inspection, not by a catalog oracle."
+   },
+   {
+    "claim_text": "Presents an ANS Identity Certificate during TLS handshake (mutual TLS)",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "tls.chain_valid,tls.issuer",
+    "reason": "Mutual TLS with a specific certificate type is a protocol/schema claim; standard TLS oracles don't verify mTLS or ANS certificate presentation."
+   },
+   {
+    "claim_text": "Publishes a Trust Card at https://auditor.webmesh.ai/.well-known/ans/trust-card.json",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "Directly checkable by fetching the URL and verifying it returns a successful response."
+   },
+   {
+    "claim_text": "Supports SPIFFE identity spiffe://webmesh.ai/agents/auditor under WIMSE",
+    "source": "description",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "SPIFFE/WIMSE identity is a protocol/schema claim not covered by any catalog oracle."
+   },
+   {
+    "claim_text": "Supports WIMSE agent-delegation-chain profile",
+    "source": "description",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "WIMSE delegation-chain profile is a protocol/schema claim not covered by any catalog oracle."
+   },
+   {
+    "claim_text": "Is publicly accessible with no authentication required",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable,http.https_ok",
+    "reason": "Public accessibility can be checked by fetching the endpoint without credentials."
+   },
+   {
+    "claim_text": "Supports ANS, DNS-AID, DNSSEC, DANE TLSA, and DNSid identity anchors",
+    "source": "description",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "dns.dnssec",
+    "reason": "Most identity anchor support (ANS, DNS-AID, DANE TLSA, DNSid) are protocol/schema claims; DNSSEC is partially oracle-checkable but the full claim is schema-level."
+   },
+   {
+    "claim_text": "Discovers ANS-registered agents by hostname",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Describes an agent discovery capability; no oracle can verify ANS registration lookup behavior."
+   },
+   {
+    "claim_text": "Sends live A2A tasks to other agents",
+    "source": "registry",
+    "about": "capability",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Describes outbound task-sending behavior; no oracle can verify this capability independently."
+   },
+   {
+    "claim_text": "Verifies identity of other agents by hostname",
+    "source": "registry",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Describes an identity verification capability on caller-supplied hostnames; no oracle covers this behavior."
+   }
+  ],
+  "coverage_ratio": 0.25,
+  "self_claims": 11,
+  "capability_claims": 13,
+  "tests_generated": 7,
+  "selfclaim_tests": 7,
+  "capability_tests": 0,
+  "notes": [
+   "no VERIFIABLE capability claims: no agent-facing tests to generate"
+  ]
+ },
+ "notes": [
+  "no VERIFIABLE capability claims: no agent-facing tests to generate"
+ ]
+}

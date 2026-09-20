@@ -1,0 +1,169 @@
+{
+ "written_at": "2026-09-20T05:24:15.228604+00:00",
+ "card_key": "2a125ea370441510",
+ "assertions": [
+  {
+   "id": "self-web-endpoint-live-drone-research-agent-dron",
+   "kind": "selfclaim",
+   "claim": "web.endpoint_live",
+   "input": {
+    "url": "https://drone-research-agent.dronecraft.co/a2a/jsonrpc"
+   },
+   "prompt": null,
+   "oracle": "web.endpoint_live",
+   "comparator": "bool",
+   "expected_override": true,
+   "severity": "MEDIUM",
+   "generated": true,
+   "rationale": "agent's own claim: Exposes an A2A JSON-RPC endpoint at https://drone-research-agent.dronecraft.co/a2a/jsonrpc",
+   "expected": null,
+   "actual": null,
+   "raw_response": null,
+   "passed": null,
+   "score": 0.0,
+   "evidence": "",
+   "latency_ms": null,
+   "error": null
+  }
+ ],
+ "coverage": {
+  "claims_found": 15,
+  "verifiable": 6,
+  "schema_only": 3,
+  "unverifiable": 6,
+  "claims": [
+   {
+    "claim_text": "Analyzes drone components",
+    "source": "registry",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Subjective capability claim about analysis work; no oracle can verify the agent performs this correctly."
+   },
+   {
+    "claim_text": "Compares drone components",
+    "source": "registry",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Subjective capability claim about comparison work; no oracle can verify the agent performs this correctly."
+   },
+   {
+    "claim_text": "Searches Google Drive documents",
+    "source": "registry",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Capability claim about searching external documents; no oracle can independently verify this behavior."
+   },
+   {
+    "claim_text": "Summarizes technical content",
+    "source": "registry",
+    "about": "capability",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Subjective capability claim about summarization; no oracle can verify quality or correctness."
+   },
+   {
+    "claim_text": "Presents comparison results with Canvas UI",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "UI rendering behavior is subjective and not verifiable by any catalog oracle."
+   },
+   {
+    "claim_text": "Exposes an A2A JSON-RPC endpoint at https://drone-research-agent.dronecraft.co/a2a/jsonrpc",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live",
+    "reason": "Directly verifiable by probing whether something is serving at that URL."
+   },
+   {
+    "claim_text": "Supports HTTP transport",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Transport protocol support is a protocol/contract claim, not directly measurable by a catalog oracle."
+   },
+   {
+    "claim_text": "Supports STREAMABLE-HTTP transport",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "Transport protocol support is a protocol/contract claim, not directly measurable by a catalog oracle."
+   },
+   {
+    "claim_text": "Exposes an HTTP-API endpoint at https://drone-research-agent.dronecraft.co/api/v1",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live",
+    "reason": "Directly verifiable by probing whether something is serving at that URL."
+   },
+   {
+    "claim_text": "Exposes an MCP endpoint at https://drone-research-agent.dronecraft.co/mcp",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.endpoint_live",
+    "reason": "Directly verifiable by probing whether something is serving at that URL."
+   },
+   {
+    "claim_text": "Publishes an agent card at https://drone-research-agent.dronecraft.co/.well-known/agent-card.json",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "Directly verifiable by fetching the well-known URL and checking it returns a successful response."
+   },
+   {
+    "claim_text": "Publishes an OpenAPI spec at https://drone-research-agent.dronecraft.co/.well-known/openapi.json",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "Directly verifiable by fetching the well-known URL and checking it returns a successful response."
+   },
+   {
+    "claim_text": "Publishes an MCP metadata file at https://drone-research-agent.dronecraft.co/.well-known/mcp.json",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "VERIFIABLE",
+    "oracle_key": "web.fetchable",
+    "reason": "Directly verifiable by fetching the well-known URL and checking it returns a successful response."
+   },
+   {
+    "claim_text": "Is MCP-powered",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "SCHEMA_ONLY",
+    "oracle_key": null,
+    "reason": "MCP protocol usage is a protocol/contract claim; partially evidenced by the MCP endpoint but not directly measurable by a single catalog oracle."
+   },
+   {
+    "claim_text": "Is targeted at drone manufacturers",
+    "source": "registry",
+    "about": "self",
+    "verifiability": "UNVERIFIABLE",
+    "oracle_key": null,
+    "reason": "Subjective marketing/audience claim; no oracle can verify the intended target audience."
+   }
+  ],
+  "coverage_ratio": 0.4,
+  "self_claims": 11,
+  "capability_claims": 4,
+  "tests_generated": 1,
+  "selfclaim_tests": 1,
+  "capability_tests": 0,
+  "notes": [
+   "no VERIFIABLE capability claims: no agent-facing tests to generate"
+  ]
+ },
+ "notes": [
+  "no VERIFIABLE capability claims: no agent-facing tests to generate"
+ ]
+}

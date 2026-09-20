@@ -4,6 +4,7 @@
   POST /api/benchmark                   {"agent": "<host|ans name>", "suite": "generated", "force": false}
   GET  /api/benchmark/{host}            same, for shareable links (?suite=&force=)
   GET  /api/stream/{host}               SSE: one `step` event per pipeline step, then `done`
+  GET  /api/examples                    cached reports as [{host, score, status, ...}] — never runs anything
   POST /a2a                             A2A JSON-RPC (message/send) — we are an ANS participant
   GET  /.well-known/agent-card.json     our own card
   GET  /.well-known/ans/trust-card.json our own trust card
@@ -29,7 +30,7 @@ from pydantic import BaseModel
 from ..llm import have_key
 from ..oracles.registry import SPECS
 from . import a2a, cards
-from .runs import RunStore, SUITES, cached_steps, parse_agent, report_payload
+from .runs import RunStore, SUITES, cached_steps, parse_agent, report_payload, resolve_name
 
 STATIC = Path(__file__).resolve().parent / "static"
 LIVE = os.getenv("BENCH_LIVE", "1") not in ("0", "false", "no")
@@ -42,6 +43,9 @@ async def _lifespan(app: FastAPI):
     n = await asyncio.to_thread(store.warm)
     print(f"[bench.server] {'live' if LIVE else 'MOCK'} mode; {n} report(s) warmed from {store.out_dir}/; "
           f"generator key {'present' if have_key() else 'MISSING'}; public url {cards.PUBLIC_URL}")
+    if LIVE and os.getenv("BENCH_PREWARM", "x") != "":
+        import threading
+        threading.Thread(target=store.prewarm, name="prewarm", daemon=True).start()   # never blocks startup
     yield
 
 
@@ -56,6 +60,11 @@ class BenchmarkRequest(BaseModel):
 
 def _host_or_400(agent: str) -> str:
     host = parse_agent(agent)
+    if not host and "." not in (agent or ""):
+        host = resolve_name(agent, store)          # a bare name: the registry's first-label match
+        if not host:
+            raise HTTPException(400, f"no registered agent is called {agent.strip()!r}; we tried it as a host, "
+                                     f"a first label and a display name — pick one from the table")
     if not host:
         raise HTTPException(400, f"could not read an agent host or ans:// name from {agent!r}")
     return host
@@ -119,6 +128,11 @@ async def _stream(host: str, suite: str, force: bool) -> AsyncIterator[str]:
         yield _sse("error", {"message": job.error})
     elif job.report is not None:
         yield _sse("done", report_payload(job.report, cached=False))
+
+
+@app.get("/api/examples")
+async def examples(limit: int = 8) -> list[dict]:
+    return store.examples(max(1, min(limit, 50)))
 
 
 @app.get("/api/stream/{host}")

@@ -127,28 +127,38 @@ def _report(assertions, coverage=None):
                  assertions, WEIGHTS, [], coverage=coverage, suite="generated")
 
 
-def test_no_capability_evidence_means_no_score():
-    """79/100 built from a reachable endpoint and readable prose is not a low score."""
+def test_self_claims_and_schema_alone_still_score_but_say_so():
+    """Six checks of the agent's own DNS/TLS plus one schema check are measurements. They
+    score — renormalised over the pools present — and the confidence says the number rests
+    on self-claims, not on capability tests."""
     cov = CoverageReport(claims_found=22, verifiable=6, schema_only=4, unverifiable=12,
                          capability_claims=16, self_claims=6, capability_tests=0, selfclaim_tests=6)
     passing_self = [Assertion(id=f"s{i}", kind=Kind.SELFCLAIM, claim="web.fetchable",
                               input={"url": "https://x.com"}, passed=True, score=100.0) for i in range(6)]
     schema = [Assertion(id="sc", kind=Kind.SCHEMA, claim="card.skills_nonempty", input={}, passed=True)]
     r = _report(passing_self + schema, cov)
-    assert r.behavior_score is None
-    assert r.score_status == "INSUFFICIENT_COVERAGE"
-    assert "unverifiable" in r.score_basis
-    assert "6 self-claim(s)" in r.score_basis and "6 held" in r.score_basis
-    assert "NO capability assertions graded" in r.explanation
+    assert r.score_status == "OK" and r.behavior_score == 100      # (.25×1 + .2×1) / .45
+    assert r.summary["score_confidence"] == "medium" and r.summary["graded_total"] == 7
+    assert "no graded capability test" in r.score_basis and "unverifiable" in r.score_basis
+    assert "score rests on self-claims and schema" in r.explanation
 
 
-def test_one_graded_capability_assertion_is_enough_for_a_score():
+def test_two_graded_assertions_are_not_a_score():
     a = [Assertion(id="o", kind=Kind.ORACLE, claim="tls.chain_valid", input={"domain": "d"}, passed=True),
          Assertion(id="s", kind=Kind.SELFCLAIM, claim="web.fetchable", input={"url": "u"}, passed=True)]
     r = _report(a)
-    assert r.score_status == "OK"
-    assert isinstance(r.behavior_score, int) and r.behavior_score > 0
-    assert "1/1 capability" in r.score_basis and "1/1 self-claim" in r.score_basis
+    assert r.score_status == "INSUFFICIENT_COVERAGE" and r.behavior_score is None
+    assert "only 2 assertion(s) graded" in r.score_basis and r.summary["score_confidence"] == "none"
+
+
+def test_three_graded_assertions_score_with_low_confidence():
+    a = [Assertion(id="o", kind=Kind.ORACLE, claim="tls.chain_valid", input={"domain": "d"}, passed=True),
+         Assertion(id="s", kind=Kind.SELFCLAIM, claim="web.fetchable", input={"url": "u"}, passed=True),
+         Assertion(id="c", kind=Kind.SCHEMA, claim="card.skills_nonempty", input={}, passed=False)]
+    r = _report(a)
+    assert r.score_status == "OK" and r.summary["score_confidence"] == "low"
+    assert r.behavior_score == round(100 * (.7 * 1 + .25 * 1 + .2 * 0) / (.7 + .25 + .2))
+    assert "1/1 capability" in r.score_basis and "1/1 self-claim" in r.score_basis and "0/1 schema" in r.score_basis
 
 
 def test_ungraded_capability_assertions_do_not_count_as_evidence():
