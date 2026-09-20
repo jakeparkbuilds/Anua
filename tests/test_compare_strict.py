@@ -28,12 +28,13 @@ def test_unreadable_values_never_pass_as_true(value):
     assert coerced is not True, f"{value!r} was read as True"
 
 
-def test_unrecognised_string_fails_with_explanatory_evidence():
-    ok, ev = compare("bool", True, "see the evidence section")
-    assert not ok
-    assert "could not interpret" in ev
-    # the offending value must appear, so the report says what went wrong
-    assert "see the evidence section" in ev
+def test_unrecognised_string_is_ungradable_not_a_verdict():
+    # A value our reader could not turn into true/false is OUR limitation: the runner
+    # turns Ungradable into SKIPPED. It is never a pass, and no longer a fail either.
+    import pytest
+    from bench.assertions.compare import Ungradable
+    with pytest.raises(Ungradable, match="could not interpret"):
+        compare("bool", True, "see the evidence section")
 
 
 def test_negative_phrases_read_as_false():
@@ -72,9 +73,10 @@ def test_collections_use_presence_semantics():
 
 
 def test_unusable_oracle_value_is_reported_not_guessed():
-    ok, ev = compare("bool", "something odd", True)
-    assert not ok
-    assert "not a usable boolean" in ev
+    import pytest
+    from bench.assertions.compare import Ungradable
+    with pytest.raises(Ungradable, match="not a usable boolean"):
+        compare("bool", "something odd", True)
 
 
 def test_eq_ignores_representation_differences():
@@ -92,4 +94,4 @@ def test_eq_still_rejects_real_mismatches():
 
 def test_none_is_still_extraction_failure():
     ok, ev = compare("bool", False, None)
-    assert not ok and "extraction failed" in ev
+    assert not ok and "does not state a value" in ev

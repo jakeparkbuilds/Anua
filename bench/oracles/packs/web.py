@@ -22,6 +22,7 @@ from . import spec
 
 _UA = "ans-bench/0.2 (+https://anuabot.vip)"
 _TIMEOUT = 15
+_MAX_BODY = 5_000_000
 
 
 def normalize_url(target: str) -> str:
@@ -99,11 +100,14 @@ def _get(url: str, verify: bool = True) -> httpx.Response:
     try:
         with httpx.Client(timeout=_TIMEOUT, follow_redirects=True, verify=verify,
                           headers={"User-Agent": _UA, "Accept": "text/html,*/*;q=0.8"}) as c:
-            return c.get(url)
+            r = c.get(url)
     except httpx.HTTPError as e:
         if is_cert_verification_error(e):
             raise
         raise OracleUnavailable(f"GET {url}: {type(e).__name__}: {e}") from e
+    if len(r.content) > _MAX_BODY:
+        raise OracleUnavailable(f"GET {url}: body is {len(r.content)} bytes; too large to parse honestly")
+    return r
 
 
 @lru_cache(maxsize=256)
@@ -295,12 +299,10 @@ SPECS = {s.key: s for s in [
          negatives=_BARE, pack=P),
     spec("web.viewport_present", viewport_present, "True iff <meta name=viewport> is present (mobile-friendly signal)",
          input="url", pack=P),
-    spec("web.lang", lang, "Value of <html lang> lowercased ('' if none)", input="url",
-         comparator="contains", returns="str", pack=P),
+    spec("web.lang", lang, "Primary language of the page from <html lang> (e.g. 'en'; '' if none)", input="url",
+         comparator="lang_eq", returns="str", pack=P),
     spec("web.charset", charset, "Response charset (from Content-Type or <meta charset>), lowercased", input="url",
          comparator="contains", returns="str", pack=P),
-    spec("web.text_chars", text_chars, "Approximate count of visible text characters outside <script> (very low means JS-rendered)",
-         input="url", comparator="eq", returns="int", pack=P),
     spec("web.https_redirect", https_redirect, "True iff http://host/ redirects to an https:// URL", input="url", pack=P),
     spec("web.robots_txt_exists", robots_txt_exists, "True iff /robots.txt exists at the origin (2xx, non-HTML)",
          input="url", negatives=_BARE, pack=P),

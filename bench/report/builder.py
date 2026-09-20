@@ -69,7 +69,10 @@ def build(agent_label: str, host: str, mode: str, identity: AgentIdentity, cards
     if oracle_rate is not None: parts.append((w.get("oracle", .7), oracle_rate))
     if self_rate is not None: parts.append((w.get("selfclaim", .25), self_rate))
     if schema_rate is not None: parts.append((w.get("schema", .2), schema_rate))
-    parts.append((w.get("quality", .1), q_score))
+    if q_items:
+        # Only when a quality assertion actually ran. Counting an absent quality item as 0
+        # capped every agent without one at 87.5 for nothing.
+        parts.append((w.get("quality", .1), q_score))
 
     p_beh, n_beh = _graded(behaviour_items)
     p_self, n_self = _graded(by_kind[Kind.SELFCLAIM])
@@ -87,6 +90,12 @@ def build(agent_label: str, host: str, mode: str, identity: AgentIdentity, cards
                        + f", {len([a for a in by_kind[Kind.SCHEMA] if a.passed])}/"
                          f"{len(by_kind[Kind.SCHEMA])} schema, quality {q_score:.2f} (10% blend)")
 
+    # How much evidence is under the number. 83 off 3 graded capability tests and 83 off
+    # 30 are not the same claim, and the report says which it is.
+    confidence = "high" if n_beh >= 20 else "medium" if n_beh >= 8 else "low" if n_beh else "none"
+    if behavior is not None:
+        score_basis += f"; evidence: {n_beh} graded capability test(s) — {confidence} confidence"
+
     failures = sorted(
         [a for a in assertions if a.passed is False],
         key=lambda a: (_SEV_ORDER[a.severity], a.id))
@@ -99,6 +108,7 @@ def build(agent_label: str, host: str, mode: str, identity: AgentIdentity, cards
     high = sum(1 for a in failures if a.severity == Severity.HIGH)
     status = "VERIFIED" if identity.verified else identity.status
     ident_word = {"VERIFIED": "VERIFIED", "PENDING": "validation PENDING", "MISMATCH": "fingerprint MISMATCH",
+                  "ROTATED": "cert ROTATED since the ANS seal (attestation stale)",
                   "NOT_FOUND": "NOT FOUND"}.get(status, "NOT verified")
     expl = ((f"{p_beh}/{n_beh} capability assertions passed" if n_beh
              else "NO capability assertions graded — behavior score withheld")
@@ -120,6 +130,8 @@ def build(agent_label: str, host: str, mode: str, identity: AgentIdentity, cards
             "oracle_pass_rate": oracle_rate, "selfclaim_pass_rate": self_rate,
             "schema_pass_rate": schema_rate,
             "capability_assertions_graded": n_beh, "selfclaim_assertions_graded": n_self,
+            "score_confidence": confidence, "evidence_n": n_beh,
+            "skipped": sum(1 for a in assertions if a.passed is None and a.kind != Kind.QUALITY),
             "quality_blend": round(q_score, 3), "high_severity_failures": high,
             "generated_count": len([a for a in assertions if a.generated]),
             "coverage_ratio": coverage.coverage_ratio if coverage else None,

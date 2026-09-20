@@ -15,11 +15,24 @@ from ..models import AgentCards
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
 
 
+_MAX_BYTES = 2_000_000
+
+
 def _get_json(url: str, timeout: int) -> dict[str, Any]:
+    """A JSON object, or httpx.HTTPError. An HTML page, a JSON list, an empty body or a
+    multi-megabyte blob at a card URL is "no card here", never a traceback."""
     with httpx.Client(timeout=timeout, follow_redirects=True) as c:
         r = c.get(url)
         r.raise_for_status()
-        return r.json()
+        if len(r.content) > _MAX_BYTES:
+            raise httpx.HTTPError(f"{url}: body is {len(r.content)} bytes, not a card")
+        try:
+            data = r.json()
+        except ValueError as e:
+            raise httpx.HTTPError(f"{url}: body is not JSON ({r.headers.get('content-type', '?')})") from e
+        if not isinstance(data, dict):
+            raise httpx.HTTPError(f"{url}: JSON is a {type(data).__name__}, not an object")
+        return data
 
 
 def fetch(host: str, timeout: int, live: bool, registry_entry: dict | None = None) -> AgentCards:

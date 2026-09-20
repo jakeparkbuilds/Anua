@@ -23,24 +23,70 @@ class Transport(Protocol):
 
 
 class AgentUnavailable(Exception):
-    """The agent refused to serve us at all (payment wall, auth wall). Not a competence
-    verdict: oracle tests are left ungraded; `endpoint.reachable` records the reason."""
+    """The agent did not serve us: a payment or auth wall (permanent for the run), or a
+    dead host, timeout, 5xx or 429 (transient — the next call is still attempted). Never a
+    competence verdict: oracle tests are left ungraded; `endpoint.reachable` records why.
+
+    This is what turned one dnsdoc run into a 36: seventeen HTTP 502s were graded as
+    seventeen wrong answers."""
+    def __init__(self, msg: str, permanent: bool = False):
+        super().__init__(msg)
+        self.permanent = permanent
+
+
+_RETRY_AFTER_S = 2.0
 
 
 def _post(client: httpx.Client, url: str, **kw) -> httpx.Response:
-    """A refused connection or dead host is the agent being unavailable, not a runner
-    crash: competence tests are left ungraded and `endpoint.reachable` records why."""
+    """One POST, one retry for anything transient. A refused connection, a timeout or a
+    5xx is the agent being unavailable, not a runner crash and not a wrong answer."""
+    last: Exception | None = None
+    for attempt in (1, 2):
+        try:
+            r = client.post(url, **kw)
+        except (httpx.ConnectError, httpx.ConnectTimeout) as e:
+            raise AgentUnavailable(f"connection failed: {type(e).__name__}: {str(e)[:120]}") from e
+        except httpx.TimeoutException as e:
+            last = AgentUnavailable(f"timed out waiting for the agent ({type(e).__name__}, "
+                                    f"{client.timeout.read}s read timeout)")
+            last.__cause__ = e
+        except httpx.HTTPError as e:
+            last = AgentUnavailable(f"transport error: {type(e).__name__}: {str(e)[:120]}")
+            last.__cause__ = e
+        else:
+            if r.status_code >= 500 or r.status_code == 429:
+                last = AgentUnavailable(f"HTTP {r.status_code} {r.reason_phrase}: the agent could not serve "
+                                        f"the request" + (" (rate limited)" if r.status_code == 429 else ""))
+            else:
+                return r
+        if attempt == 1:
+            time.sleep(_RETRY_AFTER_S)
+    assert last is not None
+    raise last
+
+
+_MAX_BODY = 5_000_000
+
+
+def _json_body(r: httpx.Response):
+    """The agent's reply as JSON. An empty body, HTML, or a multi-megabyte blob is the
+    agent failing to answer the protocol — unavailability, never a runner crash."""
+    if len(r.content) > _MAX_BODY:
+        raise AgentUnavailable(f"reply body is {len(r.content)} bytes; refusing to parse")
+    if not r.content.strip():
+        raise AgentUnavailable(f"empty reply body (HTTP {r.status_code})")
     try:
-        return client.post(url, **kw)
-    except (httpx.ConnectError, httpx.ConnectTimeout) as e:
-        raise AgentUnavailable(f"connection failed: {type(e).__name__}: {str(e)[:120]}") from e
+        return r.json()
+    except ValueError:
+        raise AgentUnavailable(f"reply is not JSON (content-type {r.headers.get('content-type', '?')}): "
+                               f"{r.text[:60]!r}")
 
 
 def _check_gate(r: httpx.Response) -> None:
     if r.status_code == 402:
-        raise AgentUnavailable(f"HTTP 402 payment required (x402: {r.headers.get('payment-required', '')[:40]}...)")
+        raise AgentUnavailable(f"HTTP 402 payment required (x402: {r.headers.get('payment-required', '')[:40]}...)", permanent=True)
     if r.status_code in (401, 403):
-        raise AgentUnavailable(f"HTTP {r.status_code} {r.reason_phrase}: authentication required")
+        raise AgentUnavailable(f"HTTP {r.status_code} {r.reason_phrase}: authentication required", permanent=True)
 
 
 def _extract_text(result: Any) -> str:
@@ -90,10 +136,10 @@ class A2ATransport:
         ms = int((time.perf_counter() - t0) * 1000)
         _check_gate(r)
         r.raise_for_status()
-        data = r.json()
-        if "error" in data:
-            raise RuntimeError(f"A2A error: {data['error']}")
-        return _extract_text(data.get("result", data)), ms
+        data = _json_body(r)
+        if isinstance(data, dict) and "error" in data:
+            raise AgentUnavailable(f"A2A error reply: {str(data['error'])[:120]}")
+        return _extract_text(data.get("result", data) if isinstance(data, dict) else data), ms
 
 
 class MCPTransport:
@@ -111,11 +157,24 @@ class MCPTransport:
         ms = int((time.perf_counter() - t0) * 1000)
         _check_gate(r)
         r.raise_for_status()
-        data = r.json()
+        data = _json_body(r)
+        if not isinstance(data, dict):
+            raise AgentUnavailable("MCP reply is not a JSON object")
         if "error" in data:
-            raise RuntimeError(f"MCP error: {data['error']}")
+            raise AgentUnavailable(f"MCP error reply: {str(data['error'])[:120]}")
         content = data.get("result", {}).get("content", [])
         return "\n".join(c.get("text", "") for c in content if isinstance(c, dict)), ms
+
+
+class NoEndpointTransport:
+    """We do not know where to send anything. Every call is the agent being unavailable
+    (permanently, for this run) so competence stays ungraded and `endpoint.reachable`
+    records why — instead of the whole run dying with a traceback."""
+    def __init__(self, why: str):
+        self.why = why
+
+    def send(self, prompt: str) -> tuple[str, int]:
+        raise AgentUnavailable(self.why, permanent=True)
 
 
 class MockTransport:
@@ -136,7 +195,8 @@ def build(cfg, cards) -> Transport:
         return MockTransport()
     endpoint = cfg.target.endpoint or cards.endpoint
     if not endpoint:
-        raise RuntimeError("No endpoint: set target.endpoint in config.yaml or ensure agent card has `url`")
+        return NoEndpointTransport("no endpoint is known for this agent: no agent card `url` and no "
+                                   "registered endpoint")
     if cfg.target.transport == "mcp":
         if not cfg.transport.mcp_tool:
             raise RuntimeError("transport=mcp requires transport.mcp_tool in config.yaml")

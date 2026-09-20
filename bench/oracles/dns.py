@@ -36,11 +36,34 @@ def _resolve(name: str, rdtype: str):
         raise OracleUnavailable(f"DNS {rdtype} {name}: {type(e).__name__}") from e
 
 
-def a_record(domain: str) -> list[str]:
+_PUBLIC_RESOLVERS = ("1.1.1.1", "8.8.8.8")
+
+
+def _a_via(domain: str, nameserver: str | None) -> list[str]:
+    r = _resolver if nameserver is None else dns.resolver.Resolver(configure=False)
+    if nameserver is not None:
+        r.nameservers = [nameserver]
+        r.lifetime = 8.0
     try:
-        return sorted(str(r) for r in _resolve(domain, "A"))
+        return sorted(str(x) for x in r.resolve(domain, "A"))
     except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
         return []
+    except dns.exception.DNSException as e:
+        raise OracleUnavailable(f"DNS A {domain} via {nameserver or 'system'}: {type(e).__name__}") from e
+
+
+def a_record(domain: str) -> list[str]:
+    """A records — but only when there IS a single truth. google.com and github.com
+    answer every resolver differently (geo / round-robin), so an agent using another
+    resolver was failed with zero overlap for being right. If our resolver and two public
+    ones disagree, there is no ground truth to grade against: OracleUnavailable."""
+    ours = _a_via(domain, None)
+    for ns in _PUBLIC_RESOLVERS:
+        other = _a_via(domain, ns)
+        if other != ours:
+            raise OracleUnavailable(f"A records for {domain} vary by resolver ({len(ours)} via system vs "
+                                    f"{len(other)} via {ns}): geo/round-robin DNS has no single truth to grade")
+    return ours
 
 
 def resolves(domain: str) -> bool:

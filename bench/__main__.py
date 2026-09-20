@@ -14,9 +14,18 @@ import sys
 from .config import load
 
 
+def _set_host(cfg, host: str) -> None:
+    """The yaml's ans_id belongs to the yaml's host. Overriding the host without dropping
+    it made example.com "find" dnsdoc's transparency-log entry and report MISMATCH."""
+    if host != cfg.target.host:
+        cfg.target.ans_id = ""
+        cfg.target.endpoint = ""
+    cfg.target.host = host
+
+
 def cmd_run(args):
     cfg = load(args.config, live=args.live)
-    if args.host: cfg.target.host = args.host
+    if args.host: _set_host(cfg, args.host)
     if args.emit: cfg.emit.enabled = True
     suite = args.suite or ("regression" if args.no_gen else None)
     from .pipeline import run
@@ -68,7 +77,7 @@ def cmd_selftest(args):
 
 def cmd_probe_agent(args):
     cfg = load(args.config, live=args.live)
-    if args.host: cfg.target.host = args.host
+    if args.host: _set_host(cfg, args.host)
     from .agent import card as card_mod, transport as transport_mod, adapter
     from .models import Assertion, Kind
     cards = card_mod.fetch(cfg.target.host, cfg.ans.timeout_s, cfg.live)
@@ -87,7 +96,7 @@ def cmd_probe_agent(args):
 
 def cmd_probe_registry(args):
     cfg = load(args.config, live=args.live)
-    if args.host: cfg.target.host = args.host
+    if args.host: _set_host(cfg, args.host)
     from .ans.registry import Registry
     reg = Registry(cfg.ans.search_base, cfg.ans.transparency_base, cfg.ans.timeout_s, cfg.live)
     print("=== SEARCH ===");  print(json.dumps(reg.search(cfg.target.host, 5), indent=2)[:3000])

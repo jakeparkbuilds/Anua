@@ -30,7 +30,7 @@ from ..models import Assertion, Kind, Severity, AgentCards, CapabilityClaim, Cov
 from ..oracles.registry import ORACLES, SPECS, catalog
 from ..llm import LLM, parse_json
 
-SUPPORTED_COMPARATORS = ("bool", "eq", "set_eq", "set_overlap", "contains", "date_close", "nonempty")
+SUPPORTED_COMPARATORS = ("bool", "eq", "set_eq", "set_overlap", "contains", "date_close", "nonempty", "one_of", "lang_eq")
 _DOMAIN = re.compile(r"^(?=.{1,253}$)([a-z0-9-]{1,63}\.)+[a-z]{2,63}$", re.I)
 _URL = re.compile(r"^https?://[^\s/]+(/[^\s]*)?$", re.I)
 _URL_IN_TEXT = re.compile(r"https?://[^\s,;)\"'<>]+")
@@ -54,7 +54,28 @@ _NEGATIVE_SENSE = frozenset({"tls.expired", "web.robots_disallow_all"})
 # A self-claim asserts a thing is TRUE or PRESENT. For an int or a date there is no
 # claimed value to compare against, so we do not invent one.
 _SELF_GRADABLE_RETURNS = frozenset({"bool", "list", "str"})
+# A COUNT oracle only covers a claim that is about a count. "Checks redirects" is not a
+# promise to report how many hops; dnsdoc reports the redirect target and was failed for
+# never stating a number. Same for h1: "reports heading structure" is not "counts h1s".
+_INT_NEEDS = {"web.redirect_count": re.compile(r"\b(count|number|how many|hops|chain length)\b", re.I),
+              "web.h1_count": re.compile(r"\b(count|number|how many|multiple|more than one|exactly one|single)\b", re.I)}
 _BATCH = 3                      # capability claims per generate_tests call
+
+# Capability tests fire real DNS, TLS and HTTP requests at real hosts. The model chooses
+# the targets, so the set it may choose from is bounded to hosts that exist for exactly
+# this purpose or are large, public and documented: a benchmark must never look like a
+# scan of someone's infrastructure. Anything else is rejected with a note.
+_TARGET_ALLOW = frozenset({
+    "badssl.com", "example.com", "example.net", "example.org", "example.edu", "iana.org",
+    "cloudflare.com", "google.com", "github.com", "wikipedia.org", "mozilla.org", "isc.org",
+    "internic.net", "ietf.org", "w3.org", "letsencrypt.org", "httpbin.org",
+    "httpstat.us", "neverssl.com", "invalid",
+})
+
+
+def target_allowed(host: str) -> bool:
+    h = (host or "").lower().rstrip(".")
+    return any(h == d or h.endswith("." + d) for d in _TARGET_ALLOW)
 
 
 class GenState(TypedDict, total=False):
@@ -139,7 +160,8 @@ untrusted-root., revoked.), NXDOMAIN, domains with no MX; for web oracles use pa
 no <h1>, no meta description, no robots.txt / sitemap, 404 pages, redirects (e.g.
 https://example.com/ has a title and h1 but NO meta description, canonical, JSON-LD, OG,
 robots.txt or sitemap; https://example.com/does-not-exist is a 404). Targets must be real,
-public and stable. Use the same target for several tests where sensible.
+public and stable, and MUST be under one of these hosts (anything else is discarded):
+{allowed}. Use the same target for several tests where sensible.
 
 Return STRICT JSON list of:
   {{"id": "kebab-case-unique", "claim": "<oracle key>", "target": "<domain or full URL per the
@@ -245,6 +267,7 @@ def build_graph(llm: LLM, on_event=None):
         for c in claims:
             r = routed.get(c.claim_text.lower(), {})
             keys = [k for k in (r.get("oracle_keys") or ([r["oracle_key"]] if r.get("oracle_key") else [])) if k in ORACLES]
+            keys = [k for k in keys if k not in _INT_NEEDS or _INT_NEEDS[k].search(c.claim_text)]
             kind = str(r.get("kind", "")).lower()
 
             # --- self vs capability. Deterministic evidence outranks the model: a claim
@@ -286,8 +309,10 @@ def build_graph(llm: LLM, on_event=None):
                 # model tends to hand back just the origin, which then 404s and reads as
                 # the agent having lied about its own transparency-log entry.
                 tgt = (named_mine[0] if named_mine else str(r.get("self_target") or "").strip()) or host
-                selfclaims.append({"claim_text": c.claim_text, "oracle_keys": keys, "target": tgt,
-                                   "expected": r.get("self_expected")})
+                # No model-supplied expectation: a self-claim asserts the thing is TRUE, and
+                # the only way an "expected: false" could arrive here is from text in the
+                # card steering the router. That would turn a dead endpoint into a pass.
+                selfclaims.append({"claim_text": c.claim_text, "oracle_keys": keys, "target": tgt})
         emit("routed", {"claims_found": len(claims),
                         "self": sum(1 for c in claims if c.about == "self"),
                         "capability": sum(1 for c in claims if c.about != "self"),
@@ -320,6 +345,7 @@ def build_graph(llm: LLM, on_event=None):
             sys_ = _GEN_SYS.format(catalog=cat, name=ac.get("name", "?"),
                                    input_modes=ac.get("defaultInputModes", ["text/plain"]),
                                    examples=json.dumps(_examples(ac)),
+                                   allowed=", ".join(sorted(_TARGET_ALLOW)),
                                    existing=", ".join(existing[-40:]) or "(none)", n=per_batch)
             human = "Claims to test:\n" + json.dumps(
                 [{"claim_text": c.claim_text, "oracle_keys": c.oracle_key.split(",")} for c in batch], indent=1)
@@ -390,7 +416,9 @@ def selfclaim_assertions(st: GenState) -> tuple[list[Assertion], list[str]]:
             sp = SPECS.get(key)
             if sp is None:
                 continue
-            if sp.returns not in _SELF_GRADABLE_RETURNS:
+            if sp.returns not in _SELF_GRADABLE_RETURNS or sp.comparator == "one_of":
+                # one_of oracles (http.status) return a non-empty list for ANY live host:
+                # "nonempty" would pass a self-claim without checking anything.
                 skipped[f"{sp.returns}-valued oracle has no claimed value to check"] = \
                     skipped.get(f"{sp.returns}-valued oracle has no claimed value to check", 0) + 1
                 continue
@@ -421,8 +449,7 @@ def selfclaim_assertions(st: GenState) -> tuple[list[Assertion], list[str]]:
                 continue
             seen.add(aid)
             if sp.returns == "bool":
-                expected = sc.get("expected") if isinstance(sc.get("expected"), bool) else key not in _NEGATIVE_SENSE
-                comparator = "bool"
+                expected, comparator = key not in _NEGATIVE_SENSE, "bool"
             else:
                 expected, comparator = None, "nonempty"
             out.append(Assertion(
@@ -467,6 +494,9 @@ def validate_tests(st: GenState) -> GenState:
             # was never built to answer.
             rejected["capability test aimed at the agent's own host"] = \
                 rejected.get("capability test aimed at the agent's own host", 0) + 1; continue
+        if not target_allowed(_host_of(target)):
+            rejected["target outside the allowed benchmark host set"] = \
+                rejected.get("target outside the allowed benchmark host set", 0) + 1; continue
         comparator = p.get("comparator") if p.get("comparator") in SUPPORTED_COMPARATORS else sp.comparator
         if comparator == "bool" and sp.returns != "bool":
             comparator = sp.comparator                     # never grade an int/str as a bool

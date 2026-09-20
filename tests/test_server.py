@@ -83,7 +83,7 @@ def test_well_known_endpoints_and_health(client):
     assert client.get("/.well-known/agent-card.json").json()["skills"][0]["id"] == "benchmark_agent"
     assert client.get("/.well-known/ans/trust-card.json").json()["agentDisplayName"] == "Anua Benchmarker"
     h = client.get("/health").json()
-    assert h["ok"] and h["oracles"] >= 42 and h["cached_reports"] == 0
+    assert h["ok"] and h["oracles"] >= 40 and h["cached_reports"] == 0
     assert client.get("/a2a").status_code == 405               # something IS serving: web.endpoint_live -> True
 
 

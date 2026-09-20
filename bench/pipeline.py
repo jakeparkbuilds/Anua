@@ -25,6 +25,48 @@ from .oracles.registry import SPECS
 STAGES = ("discover", "identity", "generate", "transport", "run", "report")
 
 
+def _generate_cached(cfg, cards, existing, llm, host, event, log):
+    """The generator is an LLM: the same card can get a different test set each run, and
+    that alone moved dnsdoc between 72 and 83. So the generated suite is content-addressed:
+    keyed by the cards' text + model + cap, stored in out/tests/, and reused verbatim on
+    the next run of the same card. A changed card is a new key. `generator.regenerate`
+    in config (or BENCH_REGENERATE=1) bypasses it."""
+    import hashlib, json, os
+    from .models import Assertion, CoverageReport
+    key_src = json.dumps({"agent_card": cards.agent_card, "trust_card": cards.trust_card,
+                          "registry_entry": cards.registry_entry, "model": cfg.generator.model,
+                          "max": cfg.generator.max_generated}, sort_keys=True, default=str)
+    key = hashlib.sha256(key_src.encode()).hexdigest()[:16]
+    cache_dir = Path(cfg.report.out_dir) / "tests"
+    path = cache_dir / f"{host.replace('.', '_')}_{key}.json"
+    regen = os.getenv("BENCH_REGENERATE", "") not in ("", "0", "false") or getattr(cfg.generator, "regenerate", False)
+    if path.exists() and not regen:
+        try:
+            d = json.loads(path.read_text())
+            gen = [Assertion(**x) for x in d["assertions"]]
+            cov = CoverageReport(**d["coverage"])
+            log(f"      reusing the generated suite written {d.get('written_at', '?')} for this exact card ({path.name})")
+            event("claims", {"claims_found": cov.claims_found})
+            event("routed", {"claims_found": cov.claims_found, "self": cov.self_claims, "capability": cov.capability_claims,
+                             "verifiable": cov.verifiable, "unverifiable": cov.unverifiable})
+            event("tests", {"written": len(gen), "batch": 1, "batches": 1})
+            return gen, cov, list(d.get("notes", [])) + [f"generated suite reused from {path.name} (same card, same model)"]
+        except Exception as e:
+            log(f"      generated-suite cache unreadable ({e}); regenerating")
+    gen, cov, notes = generate(cards, existing, cfg.generator.model, cfg.generator.max_generated,
+                               llm=llm, host=host, on_event=event)
+    failed = any("failed" in n for n in notes)
+    if gen and not failed:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        from datetime import datetime, timezone
+        path.write_text(json.dumps({"written_at": datetime.now(timezone.utc).isoformat(), "card_key": key,
+                                    "assertions": [a.model_dump(mode="json") for a in gen],
+                                    "coverage": cov.model_dump(mode="json"), "notes": notes}, indent=1))
+    elif failed:
+        notes.append("generated suite NOT cached: generation had failures; next run regenerates")
+    return gen, cov, notes
+
+
 def run(cfg: Config, generate_tests: bool | None = None, log=print, suite: str | None = None,
         llm=None, on_stage: Optional[Callable[[str, str], None]] = None,
         on_result: Optional[Callable] = None,
@@ -51,6 +93,14 @@ def run(cfg: Config, generate_tests: bool | None = None, log=print, suite: str |
     elif suite in ("generated", "both") and llm is None:
         from .llm import make_llm
         llm = make_llm(cfg.generator.model)        # raises loudly if there is no key
+    if llm is None:
+        # Regression suite: the LLM is not needed to WRITE tests, but it is the reader of
+        # the agent's prose. Without it, a regex over a paragraph was producing verdicts.
+        from .llm import have_key, make_llm
+        if have_key():
+            llm = make_llm(cfg.generator.model)
+        else:
+            notes.append("no ANTHROPIC_API_KEY: prose answers read by pattern match only (low confidence)")
 
     # [1] discover ---------------------------------------------------------------
     log(f"[1/6] discover {host} via ANS registry ({mode})")
@@ -90,8 +140,7 @@ def run(cfg: Config, generate_tests: bool | None = None, log=print, suite: str |
     if suite in ("generated", "both"):
         log(f"[3/6] LangGraph: read the agent's cards, extract claims, write tests ({cfg.generator.model})")
         stage("generate", "LLM reads the cards and writes oracle-backed tests")
-        gen, coverage, gnotes = generate(cards, assertions, cfg.generator.model, cfg.generator.max_generated,
-                                         llm=llm, host=host, on_event=event)
+        gen, coverage, gnotes = _generate_cached(cfg, cards, assertions, llm, host, event, log)
         notes.extend(gnotes)
         for n in gnotes:
             log(f"      note: {n}")

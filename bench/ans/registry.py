@@ -23,7 +23,10 @@ def _get(url: str, timeout: int, params: dict | None = None) -> dict[str, Any]:
     with httpx.Client(timeout=timeout, follow_redirects=True) as c:
         r = c.get(url, params=params)
         r.raise_for_status()
-        return r.json()
+        try:
+            return r.json()
+        except ValueError as e:
+            raise httpx.HTTPError(f"{url}: body is not JSON") from e
 
 
 def _first(d: dict, *keys: str, default=None):
@@ -48,15 +51,23 @@ class Registry:
         self.tl_base = transparency_base.rstrip("/")
         self.timeout = timeout_s
         self.live = live
+        self.last_error: str | None = None
 
     # ---- search -----------------------------------------------------------
     def search(self, query: str, limit: int = 10) -> list[dict[str, Any]]:
         if not self.live:
             return json.loads((FIXTURES / "mock_registry_search.json").read_text())
-        data = _get(f"{self.search_base}/v1/ans/registered-agents", self.timeout,
-                    params={"query": query, "pageSize": limit})
+        try:
+            data = _get(f"{self.search_base}/v1/ans/registered-agents", self.timeout,
+                        params={"query": query, "pageSize": limit})
+        except httpx.HTTPError as e:
+            # The registry being down is not "this agent is not registered". Callers
+            # treat None-ish as not found; the identity notes carry the reason.
+            self.last_error = f"registry search failed: {type(e).__name__}: {str(e)[:100]}"
+            return []
         # plausible envelope shapes
-        return _first(data, "agents", "items", "results", "data", default=data if isinstance(data, list) else [])
+        found = _first(data, "agents", "items", "results", "data", default=data if isinstance(data, list) else [])
+        return [a for a in found if isinstance(a, dict)] if isinstance(found, list) else []
 
     def find_by_host(self, host: str, display_name: str = "") -> Optional[dict[str, Any]]:
         """The search is fuzzy and ranked: `query=seo.webmesh.ai` returns 50 agents and
@@ -68,9 +79,16 @@ class Registry:
             if not q or q.lower() in tried:
                 continue
             tried.add(q.lower())
-            for a in self.search(q, limit=50):
-                if str(_first(a, "agentHost", "host", default="")).lower() == host.lower():
-                    return a
+            hits = [a for a in self.search(q, limit=50)
+                    if str(_first(a, "agentHost", "host", default="")).lower() == host.lower()]
+            if hits:
+                # Several registrations for one host (versions): prefer ACTIVE, then the
+                # highest version, deterministically — never "whichever came first".
+                def rank(a):
+                    ver = str(_first(a, "agentVersion", default="")).lstrip("v")
+                    parts = tuple(int(x) if x.isdigit() else 0 for x in ver.split("."))
+                    return (str(_first(a, "lifecycle.status", default="")).upper() == "ACTIVE", parts)
+                return max(hits, key=rank)
             if not self.live:
                 break
         return None
@@ -80,9 +98,10 @@ class Registry:
         if not self.live:
             return json.loads((FIXTURES / "mock_tl_entry.json").read_text())
         try:
-            return _get(f"{self.tl_base}/v1/agents/{ans_id}", self.timeout)
-        except httpx.HTTPError as e:
+            d = _get(f"{self.tl_base}/v1/agents/{ans_id}", self.timeout)
+        except httpx.HTTPError:
             return None
+        return d if isinstance(d, dict) else None
 
 
     @staticmethod
@@ -90,7 +109,7 @@ class Registry:
         att = _first(entry, "payload.producer.event.attestations", default={}) or {}
         fp = _first(att, "serverCert.fingerprint")
         if not fp:
-            certs = att.get("validServerCerts") or []
+            certs = [c for c in (att.get("validServerCerts") or []) if isinstance(c, dict)] if isinstance(att, dict) else []
             fp = certs[0].get("fingerprint") if certs else None
         return _norm_fp(fp) if fp else None
 

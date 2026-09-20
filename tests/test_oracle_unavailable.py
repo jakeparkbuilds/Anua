@@ -168,7 +168,7 @@ def test_paywalled_agent_is_ungraded_not_failed(monkeypatch):
     class Paywall:
         def send(self, prompt):
             calls.append(prompt)
-            raise AgentUnavailable("HTTP 402 payment required")
+            raise AgentUnavailable("HTTP 402 payment required", permanent=True)
 
     r = Runner(Paywall(), AgentCards())
     o = r.run(Assertion(id="o", kind=Kind.ORACLE, claim="tls.chain_valid", input={"domain": "a.com"},

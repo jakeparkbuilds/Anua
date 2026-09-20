@@ -84,7 +84,7 @@ def test_validate_rejects_bad_proposals_and_coerces():
         {"id": "bad-domain", "claim": "dns.resolves", "target": "not a domain"},         # invalid
         {"id": "bad-url", "claim": "web.h1_count", "target": "ftp://x"},                 # invalid for url oracle
         {"id": "weird-sev", "claim": "web.h1_count", "target": "example.com", "severity": "CRITICAL", "comparator": "bool"},
-        {"id": "bad-cmp", "claim": "dns.dnssec", "target": "b.org", "comparator": "fuzzy"},
+        {"id": "bad-cmp", "claim": "dns.dnssec", "target": "example.org", "comparator": "fuzzy"},
         "not even a dict",
     ]}
     out = validate_tests(st)["assertions"]
@@ -127,7 +127,7 @@ def test_subjective_classification_is_unverifiable_even_with_a_proxy_oracle():
         parse=[{"claim_text": "Detects whether a site is showing a parking page", "source": "skill"},
                {"claim_text": "Reports the page title", "source": "skill"}],
         route=[{"claim_text": "Detects whether a site is showing a parking page",
-                "oracle_keys": ["web.title", "web.text_chars"], "kind": "oracle", "about": "capability"},
+                "oracle_keys": ["web.title", "web.title_present"], "kind": "oracle", "about": "capability"},
                {"claim_text": "Reports the page title", "oracle_keys": ["web.title"], "kind": "oracle",
                 "about": "capability"}],
         gen=[])

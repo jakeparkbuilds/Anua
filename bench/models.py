@@ -67,7 +67,10 @@ class AgentIdentity(BaseModel):
     fingerprint_match: Optional[bool] = None
     identity_cert_uri_san: Optional[str] = None   # TODO(b): validate identity cert
     verified: bool = False
-    # VERIFIED | PENDING (TL entry, no sealed cert yet) | MISMATCH | NOT_FOUND | UNVERIFIED
+    rotated: bool = False                          # live cert is a later renewal of the sealed one
+    tlsa_fingerprints: Optional[list[str]] = None  # DANE record at _443._tcp.<host>, if published
+    # VERIFIED | PENDING (TL entry, no sealed cert yet) | ROTATED (renewed after the seal;
+    # attestation stale) | MISMATCH | NOT_FOUND | UNVERIFIED
     status: str = "UNVERIFIED"
     notes: list[str] = Field(default_factory=list)
 

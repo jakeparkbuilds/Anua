@@ -38,8 +38,9 @@ SPECS = {s.key: s for s in [
          "Issuer common name of the leaf certificate (e.g. 'R11', 'WE1')",
          comparator="contains", returns="str", pack=P),
     spec("http.status", _http.status,
-         "HTTP status code of HEAD https://domain/ without following redirects",
-         comparator="eq", returns="int", pack=P),
+         "HTTP status code of https://domain/ — the first response's code, or the final code after redirects; "
+         "either counts",
+         comparator="one_of", returns="list", pack=P),
     spec("http.https_ok", _http.https_ok,
          "True iff https://domain/ is reachable with certificate verification (False on cert failure)",
          negatives=_BADSSL, pack=P),

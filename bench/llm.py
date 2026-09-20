@@ -41,7 +41,8 @@ class AnthropicLLM:
     # work into several smaller calls rather than one big one.
     def __init__(self, model: str, temperature: float = 0.2, max_tokens: int = 8000):
         from langchain_anthropic import ChatAnthropic
-        self._llm = ChatAnthropic(model=model, temperature=temperature, max_tokens=max_tokens)
+        self._llm = ChatAnthropic(model=model, temperature=temperature, max_tokens=max_tokens,
+                                  timeout=120, max_retries=2)   # a hung model call must not hang the run
         self.model = model
         self.calls = 0
         self.truncated = 0

@@ -176,8 +176,19 @@ class RunStore:
             report = pipeline.run(cfg, log=job.log.append, suite=job.suite,
                                   on_stage=lambda name, msg: self._on_stage(job, name, msg),
                                   on_event=lambda name, payload: self._on_event(job, name, payload))
-            with self._lock:
-                self._cache[(job.host, job.suite)] = report
+            degraded = any("failed" in n or "NOT cached" in n for n in (report.coverage.notes if report.coverage else []))
+            # A flaky agent (some calls answered, some 5xx / timed out) produced a report
+            # full of NO VERDICT. Serving that from cache on stage would be the worst
+            # outcome, so it is not cached; the next request re-runs. A host that never
+            # answered at all is consistent and is cached.
+            errs = [a.error or "" for a in report.assertions]
+            transient = any(e.startswith("agent unavailable") and ("HTTP 5" in e or "timed out" in e or "429" in e) for e in errs)
+            answered = any(a.raw_response for a in report.assertions)
+            if degraded or (transient and answered):
+                job.log.append("report served but not cached: " + ("generation had failures" if degraded else "the agent was flaky during this run"))
+            else:
+                with self._lock:
+                    self._cache[(job.host, job.suite)] = report
             job.finish(report, None)
         except Exception as e:                       # the page must see WHY, never hang
             msg = _explain(e, job.host)

@@ -30,6 +30,7 @@ class GeneratorCfg(BaseModel):
     enabled: bool = True
     model: str = "claude-sonnet-4-6"
     max_generated: int = 30
+    regenerate: bool = False      # ignore the content-addressed generated-suite cache
 
 
 class ReportCfg(BaseModel):

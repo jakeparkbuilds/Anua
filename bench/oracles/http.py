@@ -4,12 +4,21 @@ import httpx
 from .errors import OracleUnavailable, is_cert_verification_error
 
 
-def status(domain: str) -> int:
-    """HTTPS status code. Raises OracleUnavailable if we never got a response — an
-    unreachable host has no status code, and inventing one would penalise the agent."""
+def status(domain: str) -> list[int]:
+    """The HTTPS status codes an honest agent could report for https://domain/: the first
+    response's status and, if that is a redirect, the final status after following it.
+    One agent reports the 301, another the 200 it lands on; both checked the domain. The
+    comparator is one_of. Raises OracleUnavailable if we never got a response."""
     try:
         with httpx.Client(timeout=10, follow_redirects=False, verify=False) as c:
-            return c.head(f"https://{domain}/").status_code
+            first = c.head(f"https://{domain}/")
+        codes = [first.status_code]
+        if first.is_redirect:
+            with httpx.Client(timeout=10, follow_redirects=True, verify=False) as c:
+                final = c.head(f"https://{domain}/").status_code
+            if final not in codes:
+                codes.append(final)
+        return codes
     except httpx.HTTPError as e:
         raise OracleUnavailable(f"HTTP {domain}: {type(e).__name__}: {e}") from e
 
