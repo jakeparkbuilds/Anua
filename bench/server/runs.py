@@ -222,7 +222,7 @@ class RunStore:
             elif p.get("tl_entry_found") and not sealed:
                 job.step("fingerprint", "warn", "certificate not yet sealed — PENDING")
             elif not live:
-                job.step("fingerprint", "warn", "TLS handshake failed")
+                job.step("fingerprint", "warn", "TLS handshake failed" + (f" — sealed {_fp_short(sealed)} never compared" if sealed else ""))
             else:
                 job.step("fingerprint", "warn", f"no sealed baseline to compare {_fp_short(live)} against")
         elif name == "claims":
@@ -275,6 +275,9 @@ def cached_steps(report: Report) -> list[dict]:
         steps.append({"step": "fingerprint", "status": "done", "detail": f"{_fp_short(ident.live_server_fingerprint)} = sealed"})
     elif ident.fingerprint_match is False:
         steps.append({"step": "fingerprint", "status": "fail", "detail": "MISMATCH live ≠ sealed"})
+    elif ident.tl_server_fingerprint and not ident.live_server_fingerprint:
+        steps.append({"step": "fingerprint", "status": "warn",
+                      "detail": f"TLS handshake failed — sealed {_fp_short(ident.tl_server_fingerprint)} never compared"})
     else:
         steps.append({"step": "fingerprint", "status": "warn",
                       "detail": "certificate not yet sealed — PENDING" if ident.status == "PENDING" else "no sealed baseline"})

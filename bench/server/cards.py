@@ -3,9 +3,9 @@
 These are written to be READ BY OUR OWN PIPELINE. A vague card is exactly what we
 criticise in dnsdoc, so every sentence is a discrete, checkable claim, and the
 self-claims (endpoint, published cards, health check) are ones this process satisfies
-the moment it is up. What we cannot yet claim we do not: there is no identity
-certificate until ANS validation completes, so `keys` is empty and the registration
-state is stated as pending rather than hidden.
+the moment it is up. What we cannot yet claim we do not: we do not hold the issued
+certificate chain, so `keys` is empty and the registration state is stated as it is,
+never padded.
 
 Everything host-specific comes from the environment so the same code serves
 localhost and anuabot.vip.
@@ -18,7 +18,7 @@ HOST = PUBLIC_URL.split("://", 1)[-1].split("/", 1)[0]
 VERSION = "1.0.0"
 ANS_NAME = os.getenv("BENCH_ANS_NAME", f"ans://v{VERSION}.{HOST}")
 ANS_AGENT_ID = os.getenv("BENCH_ANS_AGENT_ID", "9f99e3fd-1dfb-4aa7-a31b-60480bcf72c1")
-ANS_STATUS = os.getenv("BENCH_ANS_STATUS", "PENDING_VALIDATION")
+ANS_STATUS = os.getenv("BENCH_ANS_STATUS", "ACTIVE")
 NAME = "Anua Benchmarker"
 SKILL_ID = "benchmark_agent"
 
@@ -100,5 +100,5 @@ def trust_card() -> dict:
         # An empty list is the truth; a copied chain would be the thing we exist to catch.
         "keys": [],
         "registration": {"status": ANS_STATUS, "submitted": "2026-09-19",
-                         "note": "identity certificate is issued after ANS DNS validation; keys[] fills then"},
+                         "note": "ACTIVE in ANS with a sealed certificate; we do not hold its chain, so keys[] stays empty until we do"},
     }

@@ -179,7 +179,6 @@ If `selftest` fails on `cloudflare.com`, your Python has no CA trust store — s
 ans-bench/
 ├── README.md                    ← you are here
 ├── Makefile                     make selftest / run / run-live / probe / test / serve
-├── Procfile                     Railway/Heroku process line: uvicorn on $PORT
 ├── requirements.txt
 ├── config.yaml                  ★ ALL tunable settings. Grep "HUMAN" for unconfirmed values.
 ├── .env.example                 copy → .env, add ANTHROPIC_API_KEY (only needed for step 3)
@@ -551,7 +550,7 @@ Be honest about this in the demo. Judges penalize overclaiming, not simulation.
 | Oracles — network pack (13) | ✅ | ✅ ran live; `selftest` 9/9; verdict/unavailable boundary unit-tested |
 | Oracles — web pack (23) | ✅ | ✅ smoke-tested live against `example.com` and `seo.webmesh.ai` |
 | Oracles — whois/RDAP pack (5) | ✅ | ✅ live against `badssl.com` (created 2015-04-07, MarkMonitor) |
-| Assertions + comparators + scoring | ✅ | ✅ 87 unit tests pass (comparators canonicalise FQDN trailing dots — a false HIGH found on the 2A run) |
+| Assertions + comparators + scoring | ✅ | ✅ 91 unit tests pass (comparators canonicalise FQDN trailing dots — a false HIGH found on the 2A run) |
 | Report + JSON output | ✅ | ✅ |
 | Mock pipeline end-to-end | ✅ | ✅ runs clean, finds 2 HIGH failures |
 | **ANS registry search** | ✅ | ✅ **live** — discovers `dnsdoc` by host at `api.godaddy.com` |
@@ -560,7 +559,7 @@ Be honest about this in the demo. Judges penalize overclaiming, not simulation.
 | **A2A transport** | ✅ | ✅ **live** — real responses from `dnsdoc.webmesh.ai` |
 | **Live pipeline end-to-end** | ✅ | ✅ `behavior_score=87`, identity VERIFIED, 0 HIGH failures |
 | Claim-drift detection | ✅ | ✅ **fixed** — real three-way diff; fires on the mock, clean on 3 live agents |
-| Identity: 4 states (VERIFIED/PENDING/MISMATCH/NOT_FOUND) | ✅ | ✅ VERIFIED and NOT_FOUND seen live; MISMATCH still never observed |
+| Identity: VERIFIED/PENDING/MISMATCH/NOT_FOUND (+UNVERIFIED: sealed but host refuses TLS) | ✅ | ✅ VERIFIED, NOT_FOUND and UNVERIFIED seen live; MISMATCH still never observed |
 | Paywalled/auth-walled agents | ✅ | ✅ **live** — `seo.webmesh.ai` returns HTTP 402 (x402). Left **ungraded**, never scored as incompetence |
 | **Generator: writes tests for an arbitrary agent** | ✅ | ✅ **live** — 29 tests for `dnsdoc` (score 80), 28 for `seo`, from the cards alone |
 | Self-claim vs capability split | ✅ | ✅ **live** — `impact` went from 26/100 with 9 false HIGH failures to 0 failures |
@@ -570,7 +569,8 @@ Be honest about this in the demo. Judges penalize overclaiming, not simulation.
 | MCP transport | ⚠️ | ❌ never hit a real agent, and known wrong (see §11) |
 | **Benchmark server** (`make serve`) | ✅ | ✅ **live** — dnsdoc through `/api/benchmark`: 83, then `"cached": true` in 10 ms; SSE steps tick on a forced run |
 | **A2A endpoint — we are a participant** | ✅ | ✅ **live** — `POST /a2a` with our own transport's envelope returns a text summary; own cards pass our own drift check |
-| Web page | ❌ | phase 2C |
+| **Web page** (`/`) | ✅ | ✅ **live** — four presets; steps tick over SSE with a polling fallback; verified on all four with headless Chrome |
+| **Pointed at ourselves** (`anuabot.vip`) | ✅ | ✅ **live** — ACTIVE in ANS, sealed cert, nothing served: identity UNVERIFIED, every self-claim about our own URLs FAILS, card fetch falls back to the registry entry. Deliberately not special-cased |
 | Trust Index emit | ✅ | ❌ payload shape is still a guess |
 | Identity-cert / Merkle-proof validation | ❌ | stubbed — but the `x5c` chain and proof are already in responses we fetch |
 | Go `port.Signal` impls | ❌ | not started |
@@ -815,7 +815,7 @@ Same pipeline, same oracles, same report — plus a page, a streaming view of th
 an A2A endpoint of our own, so `anuabot.vip` is a registered agent other agents can call.
 
 ```
-GET  /                                the page (phase 2C)
+GET  /                                the page (bench/server/static/index.html, one file, no build)
 POST /api/benchmark                   {"agent": "<host | ans://name>", "suite": "generated|regression|both",
                                        "force": false}                      -> full Report JSON
 GET  /api/benchmark/{host}            same, for shareable links   (?suite=generated&force=false)
@@ -836,6 +836,20 @@ curl -s -X POST localhost:8000/a2a -H 'content-type: application/json' -d '{"jso
   "method":"message/send","params":{"message":{"role":"user","messageId":"m1",
   "parts":[{"kind":"text","text":"Benchmark ans://v1.0.6.dnsdoc.webmesh.ai"}]}}}'
 ```
+
+### The page
+
+One self-contained HTML file, no framework, no build step. Three reading depths: the
+verdict strip (identity · behavior score · coverage) answers "what agent, is it real, how did
+it do" in five seconds; the claims panel answers *why* — every claim badged SELF-CLAIM /
+CAPABILITY / UNVERIFIABLE with what happened to it, the reasons shown verbatim; the
+assertions table is the evidence, failures first, HIGH at the top. **Expected** is labelled
+as our oracle's ground truth, and SKIPPED (grey — we could not compute or reach) never
+looks like FAIL (red — the agent was wrong). When `score_status` is INSUFFICIENT_COVERAGE
+the phrase stands where the number would be, with `score_basis` under it. A 402 renders as
+"Declined to be benchmarked", a refused connection as "Endpoint not reachable" — neither is
+an error state. The steps tick from `/api/stream`; if the stream drops, the page polls
+`/api/benchmark` and draws the checklist from the report. `/?agent=<host>` deep-links a run.
 
 ### Caching — demo insurance, not a nicety
 
@@ -903,36 +917,43 @@ capability as a discrete claim, and includes the **self-claims this process sati
 moment it is up** — "exposes an A2A endpoint at …/a2a", "publishes its agent card at …",
 "publishes its trust card at …", "serves a health check at …" — with their URLs, so
 `route_claims` classifies them as self-claims and `web.endpoint_live` verifies them without
-calling us. What we cannot yet claim, we do not: no identity certificate has been issued
-(ANS DNS validation pending), so the trust card's `keys` is `[]` and `registration.status`
-says `PENDING_VALIDATION`. The agent card, trust card and (future) registry entry agree on
+calling us. What we cannot yet claim, we do not: we do not hold the issued certificate's chain, so
+the trust card's `keys` is `[]`. The agent card, trust card and registry entry agree on
 url / version / ansName / name, so `drift.card_vs_trust` passes on us — this is unit-tested.
 
-Pointed at ourselves, expect: identity **PENDING** or **NOT_FOUND** until validation
-completes (a viewer must read that as in-progress, not broken), self-claims verified, and
-the capability claims ("returns a behavior score…") mostly UNVERIFIABLE — the coverage
-argument applied to the tool that makes it.
+**Pointed at ourselves, today, the tool catches us.** `anuabot.vip` is ACTIVE in production
+ANS (domain validated, certificate issued and sealed in the transparency log) and nothing is
+served there. `python -m bench run --live --host anuabot.vip` reports: identity
+**UNVERIFIED** (registry hit, TL entry with a sealed fingerprint, live TLS handshake
+refused — so the sealed certificate was never compared); the agent card unreachable, so
+the claims come from what we registered; and every self-claim about our own URLs
+(`…/a2a`, `…/agent-card.json`, `…/trust-card.json`) **FAILS** — `web.endpoint_live`
+measured `False` against a claimed `True`. This is not special-cased and not softened. It is
+the whole argument in one screen: a registry says we exist and are trusted; a measurement
+says our endpoint does not answer.
 
-### Deploying — Railway, not Vercel
+### Running locally
 
-This is a long-running process with an in-memory cache and blocking network calls, so
-serverless is the wrong shape. `Procfile` runs `uvicorn bench.server.app:app` on `$PORT`.
-Point Railway at the repo; it needs Python ≥ 3.11 and the env vars below. Put
-`anuabot.vip` in front of it (Railway custom domain) so the registered endpoint
-`https://anuabot.vip/a2a` resolves to this process.
+There is no deployment. The demo runs from a laptop on the projector:
+
+```bash
+source .venv/bin/activate && make serve       # http://localhost:8000
+```
+
+`PORT` is honoured (default 8000). The process is one long-running uvicorn with an
+in-memory cache warmed from `out/`, so **run the four presets once before going on stage**
+and every click afterwards is served from cache in milliseconds.
 
 | Env var | Required | Meaning |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | for the generated suite | the generator and the extractor; missing key ⇒ `502` with the reason, never a silent skip |
-| `PORT` | no (8000) | set by Railway |
-| `BENCH_PUBLIC_URL` | no (`https://anuabot.vip`) | the origin our cards advertise; set to `http://localhost:8000` locally if you want to benchmark yourself |
+| `PORT` | no (8000) | listen port |
+| `BENCH_PUBLIC_URL` | no (`https://anuabot.vip`) | the origin our cards advertise |
 | `BENCH_ANS_AGENT_ID` | no | our ANS agentId (public; default is the registered one) |
-| `BENCH_ANS_STATUS` | no (`PENDING_VALIDATION`) | flip to `ACTIVE` once validation completes |
+| `BENCH_ANS_STATUS` | no | registration status shown on our trust card |
 | `BENCH_LIVE` | no (`1`) | `0` = mock agent everywhere, for local UI work |
 | `BENCH_WORKERS` | no (3) | thread-pool size for concurrent runs |
 | `BENCH_CONFIG` | no (`config.yaml`) | config path |
 
-No secrets in the repo: the key comes from the environment only. `out/` is ephemeral on
-Railway, so the cache warms from disk only within one deploy — run the three demo agents
-once after each deploy, before going on stage.
+No secrets in the repo: the key comes from the environment only.
 
